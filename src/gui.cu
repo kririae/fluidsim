@@ -2,7 +2,7 @@
 // Created by kr2 on 8/9/21.
 //
 
-#include "common.hpp"
+#include "common.cuh"
 #include "gui.cuh"
 #include "particle.cuh"
 #include <iostream>
@@ -56,7 +56,7 @@ RTGUI_particles::RTGUI_particles(int WIDTH, int HEIGHT)
 {
 }
 
-void RTGUI_particles::set_particles(const thrust::host_vector<SPHParticle> &_p)
+void RTGUI_particles::set_particles(const hvector<SPHParticle> &_p)
 {
   p = _p;
 

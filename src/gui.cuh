@@ -5,7 +5,7 @@
 #ifndef PBF3D_SRC_GUI_CUH_
 #define PBF3D_SRC_GUI_CUH_
 
-#include "shader.hpp"
+#include "shader.cuh"
 #include <functional>
 #include <thrust/host_vector.h>
 
@@ -32,12 +32,12 @@ class RTGUI_particles : public GUI {
   RTGUI_particles(int WIDTH, int HEIGHT);
   ~RTGUI_particles() override = default;
 
-  void set_particles(const thrust::host_vector<SPHParticle> &_p);
+  void set_particles(const hvector<SPHParticle> &_p);
   void main_loop(const std::function<void()> &callback) override;
   void del();
 
  protected:
-  thrust::host_vector<SPHParticle> p{};
+  hvector<SPHParticle> p{};
   void render_particles() const;
   unsigned int VAO{}, VBO{};
   Shader shader{};

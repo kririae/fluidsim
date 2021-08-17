@@ -4,7 +4,7 @@
 
 // currently `index sort`
 
-#include "common.hpp"
+#include "common.cuh"
 #include "nsearch.cuh"
 #include "omp.h"
 #include <algorithm>
@@ -15,15 +15,25 @@ NSearch::NSearch(float _radius)
       n_grids(int(glm::ceil(2 * border / radius) + 1))
 {
   // Initialize to index sort
-  hash_map = std::vector<std::vector<int>>(n_grids * n_grids * n_grids);
+  hash_map = hvector<hvector<int>>(n_grids * n_grids * n_grids);
 }
+
+void NSearch::set_data(const hvector<SPHParticle> &_data)
+{
+  data = _data;
+}
+
+// void NSearch::set_data(const dvector<SPHParticle> &_data)
+// {
+//   // thrust::copy(_data.begin(), _data.end(), data.begin());
+// }
 
 void NSearch::add_particle(const SPHParticle &p)
 {
   data.push_back(p);
 }
 
-thrust::host_vector<SPHParticle> &NSearch::get_data()
+const hvector<SPHParticle> &NSearch::get_data()
 {
   return data;
 }
@@ -45,7 +55,7 @@ int NSearch::neighbor(uint index, uint neighbor_index) const
 
 void NSearch::build()
 {
-  neighbor_map = std::vector<std::vector<uint>>(n_points());
+  neighbor_map = hvector<hvector<int>>(n_points());
   const int data_size = int(data.size());
 
   // Clear previous information
@@ -111,7 +121,7 @@ inline int NSearch::hash_from_grid(const ivec3 &p) const
   return hash_from_grid(p.x, p.y, p.z);
 }
 
-thrust::host_vector<int> &NSearch::neighbor_vec(uint index)
+hvector<int> &NSearch::neighbor_vec(uint index)
 {
   // the result should not be changed
   return neighbor_map[index];

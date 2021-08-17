@@ -2,7 +2,7 @@
 // Created by kr2 on 8/11/21.
 //
 
-#include "common.hpp"
+#include "common.cuh"
 #include "nsearch.cuh"
 #include "gtest/gtest.h"
 #include <random>

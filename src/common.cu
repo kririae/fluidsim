@@ -2,9 +2,9 @@
 // Created by kr2 on 8/10/21.
 //
 
-#include "common.hpp"
+#include "common.cuh"
 
-[[maybe_unused]] float fpow(float a, int b)
+[[maybe_unused]] __host__ __device__ float fpow(float a, int b)
 {
   float res = 1.0f;
   for (; b; b >>= 1, a *= a)

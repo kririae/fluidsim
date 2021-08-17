@@ -2,10 +2,10 @@
 // Created by kr2 on 8/10/21.
 //
 
-#ifndef PBF3D_SRC_SHADER_HPP_
-#define PBF3D_SRC_SHADER_HPP_
+#ifndef PBF3D_SRC_SHADER_CUH_
+#define PBF3D_SRC_SHADER_CUH_
 
-#include "common.hpp"
+#include "common.cuh"
 #include <string>
 
 class Shader {
@@ -30,4 +30,4 @@ class Shader {
   unsigned int id{};
 };
 
-#endif  // PBF3D_SRC_SHADER_HPP_
+#endif  // PBF3D_SRC_SHADER_CUH_

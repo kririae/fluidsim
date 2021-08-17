@@ -2,7 +2,7 @@
 // Created by kr2 on 8/10/21.
 //
 
-#include "shader.hpp"
+#include "shader.cuh"
 #include <fstream>
 #include <iostream>
 #include <sstream>
