@@ -2,16 +2,17 @@
 // Created by kr2 on 8/10/21.
 //
 
-#include "pbd.hpp"
+#include "pbd.cuh"
 #include <chrono>
 #include <iostream>
+#include <thrust/host_vector.h>
 
 constexpr float rho_0 = 10.0f;
 constexpr float denom_epsilon = 20.0f;
 constexpr int iter = 3;
 
 PBDSolver::PBDSolver(float _radius)
-    : ch_ptr(std::make_shared<CompactHash>(_radius)),
+    : ch_ptr(std::make_shared<NSearch>(_radius)),
       radius(_radius),
       radius2(radius * radius)
 {
@@ -125,9 +126,7 @@ void PBDSolver::add_particle(const SPHParticle &p)
 
 void PBDSolver::constraint_to_border(SPHParticle &p)
 {
-  extern Random rd_global;
-  p.pos += epsilon *
-           vec3(rd_global.rand(), rd_global.rand(), rd_global.rand());
+  p.pos += epsilon * vec3(rd_global.rand(), rd_global.rand(), rd_global.rand());
   p.pos.x = glm::clamp(p.pos.x, -border, border);
   p.pos.y = glm::clamp(p.pos.y, -border, border);
   p.pos.z = glm::clamp(p.pos.z, -border, border);
@@ -189,7 +188,7 @@ inline float PBDSolver::compute_s_corr(int p_i, int p_j)
   return -k * fpow(poly6(r, radius) / poly6(delta_q, radius), n);
 }
 
-std::vector<SPHParticle> &PBDSolver::get_data()
+thrust::host_vector<SPHParticle> &PBDSolver::get_data()
 {
   return ch_ptr->get_data();
 }

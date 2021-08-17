@@ -2,20 +2,21 @@
 // Created by kr2 on 8/10/21.
 //
 
-#ifndef PBF3D_SRC_PBD_HPP_
-#define PBF3D_SRC_PBD_HPP_
+#ifndef PBF3D_SRC_PBD_CUH_
+#define PBF3D_SRC_PBD_CUH_
 
-#include "compact_hash.hpp"
-#include "gui.hpp"
+#include "gui.cuh"
+#include "nsearch.cuh"
 #include "solver.hpp"
 #include <memory>
+#include <thrust/host_vector.h>
 #include <vector>
 
 class SPHParticle;
 
 class PBDSolver : public Solver {
  public:
-  std::shared_ptr<CompactHash> ch_ptr;  // TODO: expose the interface temporary
+  std::shared_ptr<NSearch> ch_ptr;
 
   explicit PBDSolver(float _radius);
   PBDSolver(const PBDSolver &solver) = delete;
@@ -26,7 +27,7 @@ class PBDSolver : public Solver {
   void callback() override;  // gui_ptr required
   void add_particle(const SPHParticle &p);
   static void constraint_to_border(SPHParticle &p);
-  std::vector<SPHParticle> &get_data();
+  thrust::host_vector<SPHParticle> &get_data();
 
   // PBF mathematics parts...
   float sph_calc_rho(int p_i);
@@ -40,4 +41,4 @@ class PBDSolver : public Solver {
   float radius, radius2, mass{0}, delta_t{1.0f / 60.0f};
 };
 
-#endif  // PBF3D_SRC_PBD_HPP_
+#endif  // PBF3D_SRC_PBD_CUH_

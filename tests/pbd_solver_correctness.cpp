@@ -3,7 +3,7 @@
 //
 
 #include "common.hpp"
-#include "pbd.hpp"
+#include "pbd.cuh"
 #include "gtest/gtest.h"
 #include <random>
 

@@ -4,14 +4,12 @@
 
 // currently `index sort`
 
-#include "compact_hash.hpp"
 #include "common.hpp"
+#include "nsearch.cuh"
 #include "omp.h"
 #include <algorithm>
-#include <iostream>
-#include <parallel/algorithm>
 
-CompactHash::CompactHash(float _radius)
+NSearch::NSearch(float _radius)
     : radius(_radius),
       radius2(radius * radius),
       n_grids(int(glm::ceil(2 * border / radius) + 1))
@@ -20,32 +18,32 @@ CompactHash::CompactHash(float _radius)
   hash_map = std::vector<std::vector<int>>(n_grids * n_grids * n_grids);
 }
 
-void CompactHash::add_particle(const SPHParticle &p)
+void NSearch::add_particle(const SPHParticle &p)
 {
   data.push_back(p);
 }
 
-std::vector<SPHParticle> &CompactHash::get_data()
+thrust::host_vector<SPHParticle> &NSearch::get_data()
 {
   return data;
 }
 
-int CompactHash::n_points() const
+int NSearch::n_points() const
 {
   return int(data.size());
 }
 
-int CompactHash::n_neighbor(uint index) const
+int NSearch::n_neighbor(uint index) const
 {
   return int(neighbor_map[index].size());
 }
 
-int CompactHash::neighbor(uint index, uint neighbor_index) const
+int NSearch::neighbor(uint index, uint neighbor_index) const
 {
   return int(neighbor_map[index][neighbor_index]);
 }
 
-void CompactHash::build()
+void NSearch::build()
 {
   neighbor_map = std::vector<std::vector<uint>>(n_points());
   const int data_size = int(data.size());
@@ -71,8 +69,8 @@ void CompactHash::build()
               w >= n_grids)  // TODO: implement AABB
             continue;
 
-          const int _hash_index = hash_from_grid(u, v, w);
-          const std::vector<int> &map_item = hash_map[_hash_index];
+          const auto _hash_index = hash_from_grid(u, v, w);
+          const auto &map_item = hash_map[_hash_index];
           std::for_each(map_item.cbegin(), map_item.cend(), [&](int j) {
             if (center.dist2(data[j]) <= radius2 &&
                 neighbor_map[i].size() <= ulong(MAX_NEIGHBOR_SIZE))
@@ -84,18 +82,18 @@ void CompactHash::build()
   }
 }
 
-inline int CompactHash::hash(float x, float y, float z) const
+inline int NSearch::hash(float x, float y, float z) const
 {
   const auto &grid_index = get_grid_index(vec3(x, y, z));
   return hash_from_grid(grid_index);
 }
 
-inline int CompactHash::hash(const vec3 &p) const
+inline int NSearch::hash(const vec3 &p) const
 {
   return hash(p.x, p.y, p.z);
 }
 
-inline ivec3 CompactHash::get_grid_index(const vec3 &p) const
+inline ivec3 NSearch::get_grid_index(const vec3 &p) const
 {
   int u = (int)(glm::floor((p.x + border) / radius));
   int v = (int)(glm::floor((p.y + border) / radius));
@@ -103,17 +101,17 @@ inline ivec3 CompactHash::get_grid_index(const vec3 &p) const
   return {u, v, w};
 }
 
-inline int CompactHash::hash_from_grid(int u, int v, int w) const
+inline int NSearch::hash_from_grid(int u, int v, int w) const
 {
   return u + v * n_grids + w * n_grids * n_grids;
 }
 
-inline int CompactHash::hash_from_grid(const ivec3 &p) const
+inline int NSearch::hash_from_grid(const ivec3 &p) const
 {
   return hash_from_grid(p.x, p.y, p.z);
 }
 
-std::vector<uint> &CompactHash::neighbor_vec(uint index)
+thrust::host_vector<int> &NSearch::neighbor_vec(uint index)
 {
   // the result should not be changed
   return neighbor_map[index];

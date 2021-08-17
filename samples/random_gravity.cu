@@ -2,9 +2,9 @@
 // Created by kr2 on 8/11/21.
 //
 
-#include "gui.hpp"
-#include "particle.hpp"
-#include "pbd.hpp"
+#include "gui.cuh"
+#include "particle.cuh"
+#include "pbd.cuh"
 
 constexpr int NParticles = 2000;
 constexpr int WIDTH = 800, HEIGHT = 600;

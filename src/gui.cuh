@@ -2,11 +2,12 @@
 // Created by kr2 on 8/9/21.
 //
 
-#ifndef PBF3D_SRC_GUI_HPP_
-#define PBF3D_SRC_GUI_HPP_
+#ifndef PBF3D_SRC_GUI_CUH_
+#define PBF3D_SRC_GUI_CUH_
 
 #include "shader.hpp"
 #include <functional>
+#include <thrust/host_vector.h>
 
 class GLFWwindow;
 class SPHParticle;
@@ -31,12 +32,12 @@ class RTGUI_particles : public GUI {
   RTGUI_particles(int WIDTH, int HEIGHT);
   ~RTGUI_particles() override = default;
 
-  void set_particles(const std::vector<SPHParticle> &_p);
+  void set_particles(const thrust::host_vector<SPHParticle> &_p);
   void main_loop(const std::function<void()> &callback) override;
   void del();
 
  protected:
-  std::vector<SPHParticle> p{};
+  thrust::host_vector<SPHParticle> p{};
   void render_particles() const;
   unsigned int VAO{}, VBO{};
   Shader shader{};
@@ -46,4 +47,4 @@ class RTGUI_particles : public GUI {
   void process_input();
 };
 
-#endif  // PBF3D_SRC_GUI_HPP_
+#endif  // PBF3D_SRC_GUI_CUH_
