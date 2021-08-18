@@ -13,7 +13,7 @@ uniform mat4 projection;
 void main() {
   gl_Position = projection * view * model * vec4(v_pos, 1.0f);
 
-  // export to frag shader
+  // export to frag p_shader
   f_pos = vec3(model * vec4(v_pos, 1.0f));
   f_coeff = v_coeff;
 }

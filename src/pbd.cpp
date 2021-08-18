@@ -6,10 +6,6 @@
 #include <chrono>
 #include <iostream>
 
-constexpr float rho_0 = 10.0f;
-constexpr float denom_epsilon = 20.0f;
-constexpr int iter = 3;
-
 PBDSolver::PBDSolver(float _radius)
     : ch_ptr(std::make_shared<NSearch>(_radius)),
       radius(_radius),
@@ -32,11 +28,10 @@ void PBDSolver::callback()
   auto &data = get_data();
   const auto pre_data = data;  // copy
   const int data_size = data.size();
-  const vec3 g(0.0f, -9.8f, 0.0f);
 
   // Apply forces
   for (auto &i : data) {
-    i.v += delta_t * g;
+    i.v += delta_t * ext_f;
     i.pos += delta_t * i.v;
     constraint_to_border(i);
   }
@@ -125,9 +120,7 @@ void PBDSolver::add_particle(const SPHParticle &p)
 
 void PBDSolver::constraint_to_border(SPHParticle &p)
 {
-  extern Random rd_global;
-  p.pos += epsilon *
-           vec3(rd_global.rand(), rd_global.rand(), rd_global.rand());
+  p.pos += epsilon * vec3(rd_global.rand(), rd_global.rand(), rd_global.rand());
   p.pos.x = glm::clamp(p.pos.x, -border, border);
   p.pos.y = glm::clamp(p.pos.y, -border, border);
   p.pos.z = glm::clamp(p.pos.z, -border, border);

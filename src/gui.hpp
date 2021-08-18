@@ -11,6 +11,7 @@
 class GLFWwindow;
 class SPHParticle;
 class Solver;
+class PBDSolver;
 
 class GUI {
  public:
@@ -32,6 +33,7 @@ class RTGUI_particles : public GUI {
   ~RTGUI_particles() override = default;
 
   void set_particles(const std::vector<SPHParticle> &_p);
+  void set_solver(PBDSolver *_solver);
   void main_loop(const std::function<void()> &callback) override;
   void del();
 
@@ -39,7 +41,10 @@ class RTGUI_particles : public GUI {
   std::vector<SPHParticle> p{};
   void render_particles() const;
   unsigned int VAO{}, VBO{};
-  Shader shader{};
+  Shader p_shader{};
+  PBDSolver *solver{};
+  bool rotate = false;
+  bool mesh = false;
 
  private:
   void refresh_fps() const;

@@ -15,8 +15,7 @@
 #include <random>
 
 constexpr float border = 20.0f;
-constexpr float epsilon = 1e-5;
-constexpr bool rotate = false;
+constexpr float epsilon = 3e-5;
 constexpr float radius = 1.8f;
 // other pbf parameters are defined in pbd.cpp
 

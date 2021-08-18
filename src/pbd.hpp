@@ -15,6 +15,10 @@ class SPHParticle;
 
 class PBDSolver : public Solver {
  public:
+  float rho_0 = 10.0f;
+  float denom_epsilon = 20.0f;
+  int iter = 3;
+  vec3 ext_f = vec3(0.0f, -9.8f, 0.0f);
   std::shared_ptr<NSearch> ch_ptr;  // TODO: expose the interface temporary
 
   explicit PBDSolver(float _radius);

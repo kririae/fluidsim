@@ -7,7 +7,7 @@
 #include "pbd.hpp"
 
 constexpr int NParticles = 2000;
-constexpr int WIDTH = 1920, HEIGHT = 1080;
+constexpr int WIDTH = 1280, HEIGHT = 720;
 
 int main()
 {
@@ -15,6 +15,7 @@ int main()
   RTGUI_particles gui(WIDTH, HEIGHT);
   PBDSolver pbd(radius);
   pbd.set_gui(&gui);
+  gui.set_solver(&pbd);
   std::function<void()> callback = [obj = &pbd] { obj->callback(); };
 
   constexpr int _range = static_cast<int>(border / 1.5f);

@@ -7,6 +7,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "particle.hpp"
+#include "pbd.hpp"
 #include <iostream>
 #include <sstream>
 
@@ -50,7 +51,7 @@ GUI::GUI(int WIDTH, int HEIGHT) : width(WIDTH), height(HEIGHT)
   (void)io;
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
-  ImGui::StyleColorsDark();
+  ImGui::StyleColorsClassic();
 
   std::cout << "gui finished initialization" << std::endl;
 }
@@ -71,6 +72,11 @@ RTGUI_particles::RTGUI_particles(int WIDTH, int HEIGHT)
 {
 }
 
+void RTGUI_particles::set_solver(PBDSolver *_solver)
+{
+  solver = _solver;
+}
+
 void RTGUI_particles::set_particles(const std::vector<SPHParticle> &_p)
 {
   p = _p;
@@ -89,26 +95,35 @@ void RTGUI_particles::set_particles(const std::vector<SPHParticle> &_p)
   glBindVertexArray(VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-  std::vector<float> points;
-  points.reserve(p.size() * 4);
-  for (auto &i : p) {
-    points.push_back(i.pos.x);
-    points.push_back(i.pos.y);
-    points.push_back(i.pos.z);
-    points.push_back(i.rho);
+  if (mesh) {
+    // TODO: construct mesh
   }
+  else {
+    std::vector<float> points;
+    points.reserve(p.size() * 4);
+    for (auto &i : p) {
+      points.push_back(i.pos.x);
+      points.push_back(i.pos.y);
+      points.push_back(i.pos.z);
+      points.push_back(i.rho);
+    }
 
-  glBufferData(GL_ARRAY_BUFFER,
-               points.size() * sizeof(float),
-               points.data(),
-               GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,
+                 points.size() * sizeof(float),
+                 points.data(),
+                 GL_STREAM_DRAW);
 
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(
-      0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void *)nullptr);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(
-      1, 1, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void *)nullptr);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1,
+                          1,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          sizeof(float) * 4,
+                          (void *)(3 * sizeof(float)));
+  }
 
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -116,14 +131,15 @@ void RTGUI_particles::set_particles(const std::vector<SPHParticle> &_p)
 
 void RTGUI_particles::main_loop(const std::function<void()> &callback)
 {
-  // Please call set_particles in callback function and return the newly
+  // Call set_particles in callback function and return the newly
   // generated particles
 
   std::cout << "entered main_loop" << std::endl;
   while (!glfwWindowShouldClose(window)) {
     // Do something with particles
     glfwPollEvents();
-    glClearColor(0.921f, 0.925f, 0.933f, 1.0f);
+    glClearColor(0.16, 0.17, 0.2, 1);  // one dark
+    // glClearColor(0.921f, 0.925f, 0.933f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     process_input();
@@ -135,9 +151,29 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::Begin("Demo window");
-    ImGui::Button("Hello!");
-    ImGui::End();
+    // ImGui widgets
+    {
+      // ImGui::SetNextWindowSize(ImVec2(360, 150), ImGuiCond_Always);
+      ImGui::Begin(
+          "PBD Controller", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+      ImGui::SliderFloat("rho_0", &(solver->rho_0), 5.0f, 20.0f);
+      ImGui::SliderInt("iter", &(solver->iter), 1, 10);
+      ImGui::SliderFloat("ext_f.x", &(solver->ext_f.x), -10.0f, 10.0f);
+      ImGui::SliderFloat("ext_f.y", &(solver->ext_f.y), -10.0f, 10.0f);
+      ImGui::SliderFloat("ext_f.z", &(solver->ext_f.z), -10.0f, 10.0f);
+      ImGui::Checkbox("rotate", &rotate);
+      ImGui::Checkbox("mesh", &mesh);
+      ImGui::End();
+    }
+
+    {
+      ImGuiIO &io = ImGui::GetIO();
+      ImGui::Begin(
+          "Program Information", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+      ImGui::Text("Framerate: %.1f", io.Framerate);
+      ImGui::End();
+    }
+
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -150,11 +186,9 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
 
 void RTGUI_particles::render_particles() const
 {
-  static float rotate_y = 0;
+  static float rotate_y = 45.0f;
   if (rotate)
     rotate_y += 0.005;
-  else
-    rotate_y = 45.0f;
 
   if (rotate_y > 360.0f)
     rotate_y = 0;
@@ -172,16 +206,21 @@ void RTGUI_particles::render_particles() const
 
   glBindVertexArray(VAO);
 
-  shader.use();
-  shader.set_mat4("model", model);
-  shader.set_mat4("view", view);
-  shader.set_mat4("projection", projection);
+  p_shader.use();
+  p_shader.set_mat4("model", model);
+  p_shader.set_mat4("view", view);
+  p_shader.set_mat4("projection", projection);
 
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_MULTISAMPLE);
-  glPointSize(1.8f);
 
-  glDrawArrays(GL_POINTS, 0, p.size());
+  if (mesh) {
+    // TODO: display mesh
+  }
+  else {
+    glPointSize(1.8f);
+    glDrawArrays(GL_POINTS, 0, p.size());
+  }
   glBindVertexArray(0);
 }
 
@@ -191,7 +230,7 @@ void RTGUI_particles::del()
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
 
-  shader.del();
+  p_shader.del();
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
   glfwDestroyWindow(window);

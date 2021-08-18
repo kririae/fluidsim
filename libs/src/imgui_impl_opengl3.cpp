@@ -2,8 +2,8 @@
 // pipeline
 // - Desktop GL: 2.x 3.x 4.x
 // - Embedded GL: ES 2.0 (WebGL 1.0), ES 3.0 (WebGL 2.0)
-// This needs to be used along with a Platform Backend (e.g. GLFW, SDL, Win32,
-// custom..)
+// This needs to be used along with a Platform Backend (e.ext_f. GLFW, SDL,
+// Win32, custom..)
 
 // Implemented features:
 //  [X] Renderer: User texture binding. Use 'GLuint' OpenGL texture identifier
@@ -24,7 +24,7 @@
 //  buffer. 2021-01-03: OpenGL: Backup, setup and restore GL_STENCIL_TEST state.
 //  2020-10-23: OpenGL: Backup, setup and restore GL_PRIMITIVE_RESTART state.
 //  2020-10-15: OpenGL: Use glGetString(GL_VERSION) instead of
-//  glGetIntegerv(GL_MAJOR_VERSION, ...) when the later returns zero (e.g.
+//  glGetIntegerv(GL_MAJOR_VERSION, ...) when the later returns zero (e.ext_f.
 //  Desktop GL 2.x) 2020-09-17: OpenGL: Fix to avoid compiling/calling
 //  glBindSampler() on ES or pre 3.3 context which have the defines set by a
 //  loader. 2020-07-10: OpenGL: Added support for glad2 OpenGL loader.
@@ -52,7 +52,7 @@
 //  by the headers/loader. 2019-02-11: OpenGL: Projecting clipping rectangles
 //  correctly using draw_data->FramebufferScale to allow multi-viewports for
 //  retina display. 2019-02-01: OpenGL: Using GLSL 410 shaders for any version
-//  over 410 (e.g. 430, 450). 2018-11-30: Misc: Setting up
+//  over 410 (e.ext_f. 430, 450). 2018-11-30: Misc: Setting up
 //  io.BackendRendererName so it can be displayed in the About Window.
 //  2018-11-13: OpenGL: Support for GL 4.5's glClipControl(GL_UPPER_LEFT) /
 //  GL_CLIP_ORIGIN. 2018-08-29: OpenGL: Added support for more OpenGL loaders:
@@ -70,14 +70,14 @@
 //  2018-05-14: OpenGL: Making the call to glBindSampler() optional so 3.2
 //  context won't fail if the function is a NULL pointer. 2018-03-06: OpenGL:
 //  Added const char* glsl_version parameter to ImGui_ImplOpenGL3_Init() so user
-//  can override the GLSL version e.g. "#version 150". 2018-02-23: OpenGL:
+//  can override the GLSL version e.ext_f. "#version 150". 2018-02-23: OpenGL:
 //  Create the VAO in the render function so the setup can more easily be used
 //  with multiple shared GL context. 2018-02-16: Misc: Obsoleted the
 //  io.RenderDrawListsFn callback and exposed ImGui_ImplSdlGL3_RenderDrawData()
 //  in the .h file so you can call it yourself. 2018-01-07: OpenGL: Changed GLSL
-//  shader version from 330 to 150. 2017-09-01: OpenGL: Save and restore current
-//  bound sampler. Save and restore current polygon mode. 2017-05-01: OpenGL:
-//  Fixed save and restore of current blend func state. 2017-05-01: OpenGL:
+//  p_shader version from 330 to 150. 2017-09-01: OpenGL: Save and restore
+//  current bound sampler. Save and restore current polygon mode. 2017-05-01:
+//  OpenGL://  Fixed save and restore of current blend func state. 2017-05-01: OpenGL:
 //  Fixed save and restore of current GL_ACTIVE_TEXTURE. 2016-09-05: OpenGL:
 //  Fixed save and restore of current scissor rectangle. 2016-07-29: OpenGL:
 //  Explicitly setting GL_UNPACK_ROW_LENGTH to reduce issues because SDL changes
@@ -181,7 +181,7 @@ using namespace gl;
 // OpenGL Data
 static GLuint g_GlVersion =
     0;  // Extracted at runtime using GL_MAJOR_VERSION, GL_MINOR_VERSION queries
-        // (e.g. 320 for GL 3.2)
+        // (e.ext_f. 320 for GL 3.2)
 static char g_GlslVersionString[32] =
     "";  // Specified by user or detected based on compile time GL settings.
 static GLuint g_FontTexture = 0;
@@ -195,7 +195,7 @@ static unsigned int g_VboHandle = 0, g_ElementsHandle = 0;
 // Functions
 bool ImGui_ImplOpenGL3_Init(const char *glsl_version)
 {
-  // Query for GL version (e.g. 320 for GL 3.2)
+  // Query for GL version (e.ext_f. 320 for GL 3.2)
 #if !defined(IMGUI_IMPL_OPENGL_ES2)
   GLint major = 0;
   GLint minor = 0;
@@ -845,20 +845,20 @@ bool ImGui_ImplOpenGL3_CreateDeviceObjects()
   g_VertHandle = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(g_VertHandle, 2, vertex_shader_with_version, NULL);
   glCompileShader(g_VertHandle);
-  CheckShader(g_VertHandle, "vertex shader");
+  CheckShader(g_VertHandle, "vertex p_shader");
 
   const GLchar *fragment_shader_with_version[2] = {g_GlslVersionString,
                                                    fragment_shader};
   g_FragHandle = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(g_FragHandle, 2, fragment_shader_with_version, NULL);
   glCompileShader(g_FragHandle);
-  CheckShader(g_FragHandle, "fragment shader");
+  CheckShader(g_FragHandle, "fragment p_shader");
 
   g_ShaderHandle = glCreateProgram();
   glAttachShader(g_ShaderHandle, g_VertHandle);
   glAttachShader(g_ShaderHandle, g_FragHandle);
   glLinkProgram(g_ShaderHandle);
-  CheckProgram(g_ShaderHandle, "shader program");
+  CheckProgram(g_ShaderHandle, "p_shader program");
 
   g_AttribLocationTex = glGetUniformLocation(g_ShaderHandle, "Texture");
   g_AttribLocationProjMtx = glGetUniformLocation(g_ShaderHandle, "ProjMtx");

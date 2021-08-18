@@ -32,7 +32,7 @@ Shader::Shader()
     f_code = open_file("../src/frag.glsl");
   }
   catch (std::ifstream::failure &e) {
-    std::cerr << "failed to read shader files\n" << std::endl;
+    std::cerr << "failed to read p_shader files\n" << std::endl;
     glfwTerminate();
   }
 
@@ -50,7 +50,7 @@ Shader::Shader()
     }
   };
 
-  unsigned int vertex_shader;  // generate vertex shader object
+  unsigned int vertex_shader;  // generate vertex p_shader object
   vertex_shader = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vertex_shader, 1, &v_code_c, nullptr);
   glCompileShader(vertex_shader);
@@ -74,7 +74,7 @@ Shader::Shader()
   glGetProgramiv(id, GL_LINK_STATUS, &success);
   if (!success) {
     glGetProgramInfoLog(id, 512, nullptr, info_log);
-    std::cerr << "failed to link shader\n" << info_log << std::endl;
+    std::cerr << "failed to link p_shader\n" << info_log << std::endl;
   }
 
   glDeleteShader(vertex_shader);

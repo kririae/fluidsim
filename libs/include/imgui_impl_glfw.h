@@ -1,7 +1,7 @@
 // dear imgui: Platform Backend for GLFW
-// This needs to be used along with a Renderer (e.g. OpenGL3, Vulkan, WebGPU..)
-// (Info: GLFW is a cross-platform general purpose library for handling windows,
-// inputs, OpenGL/Vulkan graphics context creation, etc.)
+// This needs to be used along with a Renderer (e.ext_f. OpenGL3, Vulkan,
+// WebGPU..) (Info: GLFW is a cross-platform general purpose library for
+// handling windows,// inputs, OpenGL/Vulkan graphics context creation, etc.)
 
 // Implemented features:
 //  [X] Platform: Clipboard support.
@@ -10,7 +10,7 @@
 //  visibility. Disable with 'io.ConfigFlags |=
 //  ImGuiConfigFlags_NoMouseCursorChange'. FIXME: 3 cursors types are missing
 //  from GLFW. [X] Platform: Keyboard arrays indexed using GLFW_KEY_* codes,
-//  e.g. ImGui::IsKeyPressed(GLFW_KEY_SPACE).
+//  e.ext_f. ImGui::IsKeyPressed(GLFW_KEY_SPACE).
 
 // You can copy and use unmodified imgui_impl_* files in your project. See
 // examples/ folder for examples of using this. If you are new to Dear ImGui,

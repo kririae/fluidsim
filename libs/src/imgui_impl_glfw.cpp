@@ -1,7 +1,7 @@
 // dear imgui: Platform Backend for GLFW
-// This needs to be used along with a Renderer (e.g. OpenGL3, Vulkan, WebGPU..)
-// (Info: GLFW is a cross-platform general purpose library for handling windows,
-// inputs, OpenGL/Vulkan graphics context creation, etc.) (Requires: GLFW 3.1+)
+// This needs to be used along with a Renderer (e.ext_f. OpenGL3, Vulkan,
+// WebGPU..) (Info: GLFW is a cross-platform general purpose library for
+// handling windows,// inputs, OpenGL/Vulkan graphics context creation, etc.) (Requires: GLFW 3.1+)
 
 // Implemented features:
 //  [X] Platform: Clipboard support.
@@ -10,7 +10,7 @@
 //  visibility. Disable with 'io.ConfigFlags |=
 //  ImGuiConfigFlags_NoMouseCursorChange' (note: the resizing cursors requires
 //  GLFW 3.4+). [X] Platform: Keyboard arrays indexed using GLFW_KEY_* codes,
-//  e.g. ImGui::IsKeyPressed(GLFW_KEY_SPACE).
+//  e.ext_f. ImGui::IsKeyPressed(GLFW_KEY_SPACE).
 
 // You can copy and use unmodified imgui_impl_* files in your project. See
 // examples/ folder for examples of using this. If you are new to Dear ImGui,
@@ -432,7 +432,7 @@ void ImGui_ImplGlfw_NewFrame()
   ImGuiIO &io = ImGui::GetIO();
   IM_ASSERT(io.Fonts->IsBuilt() &&
             "Font atlas not built! It is generally built by the renderer "
-            "backend. Missing call to renderer _NewFrame() function? e.g. "
+            "backend. Missing call to renderer _NewFrame() function? e.ext_f. "
             "ImGui_ImplOpenGL3_NewFrame().");
 
   // Setup display size (every frame to accommodate for window resizing)

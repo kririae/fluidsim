@@ -20,7 +20,6 @@ find_package(imgui REQUIRED)
 
 include_directories("${PROJECT_SOURCE_DIR}/libs/include")
 
-
 file(GLOB source
   "${PROJECT_SOURCE_DIR}/src/*.cpp")
 file(GLOB lib_source
