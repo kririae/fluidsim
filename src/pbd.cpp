@@ -11,7 +11,7 @@ constexpr float denom_epsilon = 20.0f;
 constexpr int iter = 3;
 
 PBDSolver::PBDSolver(float _radius)
-    : ch_ptr(std::make_shared<CompactHash>(_radius)),
+    : ch_ptr(std::make_shared<NSearch>(_radius)),
       radius(_radius),
       radius2(radius * radius)
 {

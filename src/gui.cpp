@@ -4,6 +4,8 @@
 
 #include "gui.hpp"
 #include "common.hpp"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 #include "particle.hpp"
 #include <iostream>
 #include <sstream>
@@ -25,6 +27,7 @@ GUI::GUI(int WIDTH, int HEIGHT) : width(WIDTH), height(HEIGHT)
   }
 
   glfwMakeContextCurrent(window);
+  glfwSwapInterval(1);  // Enable vsync
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cerr << "Failed to initialize GLAD" << std::endl;
@@ -32,22 +35,34 @@ GUI::GUI(int WIDTH, int HEIGHT) : width(WIDTH), height(HEIGHT)
 
   glViewport(0, 0, WIDTH, HEIGHT);
 
-  glfwSetFramebufferSizeCallback(
-      window, [](GLFWwindow *, int _width, int _height) {
-        std::clog << "window size changed to " << _width << " " << _height
-                  << std::endl;
-        glViewport(0, 0, _width, _height);
-      });
+  // glfwSetFramebufferSizeCallback(
+  //     window, [](GLFWwindow *, int _width, int _height) {
+  //       std::clog << "window size changed to " << _width << " " << _height
+  //                 << std::endl;
+  //       glViewport(0, 0, _width, _height);
+  //     });
+
+  // Setup Dear ImGui context
+  const char *glsl_version = "#version 330 core";
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO &io = ImGui::GetIO();
+  (void)io;
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init(glsl_version);
+  ImGui::StyleColorsDark();
+
+  std::cout << "gui finished initialization" << std::endl;
 }
 
 void GUI::main_loop(const std::function<void()> &callback)
 {
   while (!glfwWindowShouldClose(window)) {
+    glfwPollEvents();
     glClear(GL_COLOR_BUFFER_BIT);
     callback();
 
     glfwSwapBuffers(window);
-    glfwPollEvents();
   }
 }
 
@@ -104,19 +119,32 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
   // Please call set_particles in callback function and return the newly
   // generated particles
 
+  std::cout << "entered main_loop" << std::endl;
   while (!glfwWindowShouldClose(window)) {
     // Do something with particles
+    glfwPollEvents();
     glClearColor(0.921f, 0.925f, 0.933f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     process_input();
     refresh_fps();
     callback();
-
     render_particles();
 
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("Demo window");
+    ImGui::Button("Hello!");
+    ImGui::End();
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    int display_w, display_h;
+    glfwGetFramebufferSize(window, &display_w, &display_h);
+    glViewport(0, 0, display_w, display_h);
     glfwSwapBuffers(window);
-    glfwPollEvents();
   }
 }
 
@@ -159,9 +187,15 @@ void RTGUI_particles::render_particles() const
 
 void RTGUI_particles::del()
 {
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+
   shader.del();
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
+  glfwDestroyWindow(window);
+  glfwTerminate();
 }
 
 void RTGUI_particles::process_input()

@@ -2,20 +2,20 @@
 // Created by kr2 on 8/10/21.
 //
 
-#ifndef PBF3D_SRC_COMPACT_HASH_HPP_
-#define PBF3D_SRC_COMPACT_HASH_HPP_
+#ifndef PBF3D_SRC_NSEARCH_HPP_
+#define PBF3D_SRC_NSEARCH_HPP_
 
 #include "particle.hpp"
 
 constexpr int MAX_NEIGHBOR_SIZE = 60;
 
-class CompactHash {
+class NSearch {
   // Currently, a poor implementation (for correctness)
  public:
-  explicit CompactHash(float _radius);
-  CompactHash(const CompactHash &CH) = delete;
-  CompactHash &operator=(const CompactHash &CH) = delete;
-  ~CompactHash() = default;
+  explicit NSearch(float _radius);
+  NSearch(const NSearch &CH) = delete;
+  NSearch &operator=(const NSearch &CH) = delete;
+  ~NSearch() = default;
 
   // interface
   void build();
@@ -40,4 +40,4 @@ class CompactHash {
   [[nodiscard]] inline int hash_from_grid(const ivec3 &p) const;
   [[nodiscard]] inline ivec3 get_grid_index(const vec3 &p) const;
 };
-#endif  // PBF3D_SRC_COMPACT_HASH_HPP_
+#endif  // PBF3D_SRC_NSEARCH_HPP_

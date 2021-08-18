@@ -5,8 +5,8 @@
 #ifndef PBF3D_SRC_PBD_HPP_
 #define PBF3D_SRC_PBD_HPP_
 
-#include "compact_hash.hpp"
 #include "gui.hpp"
+#include "nsearch.hpp"
 #include "solver.hpp"
 #include <memory>
 #include <vector>
@@ -15,7 +15,7 @@ class SPHParticle;
 
 class PBDSolver : public Solver {
  public:
-  std::shared_ptr<CompactHash> ch_ptr;  // TODO: expose the interface temporary
+  std::shared_ptr<NSearch> ch_ptr;  // TODO: expose the interface temporary
 
   explicit PBDSolver(float _radius);
   PBDSolver(const PBDSolver &solver) = delete;

@@ -3,7 +3,7 @@
 //
 
 #include "common.hpp"
-#include "compact_hash.hpp"
+#include "nsearch.hpp"
 #include "gtest/gtest.h"
 #include <random>
 #include <vector>
@@ -17,7 +17,7 @@ TEST(COMPACT_HASH, algorithm)
   std::mt19937 mt(rd());
   std::uniform_real_distribution<float> dist(-border, border);
 
-  CompactHash ch(radius);
+  NSearch ch(radius);
   for (int i = 0; i < NParticles - 200; ++i)
     ch.add_particle(SPHParticle(dist(mt), dist(mt), dist(mt)));
   for (int i = 0; i < 200; ++i)

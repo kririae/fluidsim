@@ -28,8 +28,8 @@ Shader::Shader()
 
   std::string v_code, f_code;
   try {
-    v_code = open_file("/home/kr2/Desktop/toys/pbf3d/src/vert.glsl");
-    f_code = open_file("/home/kr2/Desktop/toys/pbf3d/src/frag.glsl");
+    v_code = open_file("../src/vert.glsl");
+    f_code = open_file("../src/frag.glsl");
   }
   catch (std::ifstream::failure &e) {
     std::cerr << "failed to read shader files\n" << std::endl;

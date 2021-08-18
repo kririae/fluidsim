@@ -7,7 +7,7 @@
 #include "pbd.hpp"
 
 constexpr int NParticles = 2000;
-constexpr int WIDTH = 800, HEIGHT = 600;
+constexpr int WIDTH = 1920, HEIGHT = 1080;
 
 int main()
 {
