@@ -7,7 +7,7 @@
 #include <iostream>
 #include <sstream>
 
-Shader::Shader()
+Shader::Shader(const std::string &vert, const std::string &frag)
 {
   auto open_file = [&](const GLchar *filePath) -> std::string {
     std::string done;
@@ -28,8 +28,8 @@ Shader::Shader()
 
   std::string v_code, f_code;
   try {
-    v_code = open_file("../src/vert.glsl");
-    f_code = open_file("../src/frag.glsl");
+    v_code = open_file(vert.c_str());
+    f_code = open_file(frag.c_str());
   }
   catch (std::ifstream::failure &e) {
     std::cerr << "failed to read p_shader files\n" << std::endl;

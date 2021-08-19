@@ -3,12 +3,14 @@
 //
 
 #include "gui.hpp"
+#include "OBJ_Loader.h"
 #include "common.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "particle.hpp"
 #include "pbd.hpp"
 #include <iostream>
+#include <memory>
 #include <sstream>
 
 GUI::GUI(int WIDTH, int HEIGHT) : width(WIDTH), height(HEIGHT)
@@ -42,18 +44,6 @@ GUI::GUI(int WIDTH, int HEIGHT) : width(WIDTH), height(HEIGHT)
   //                 << std::endl;
   //       glViewport(0, 0, _width, _height);
   //     });
-
-  // Setup Dear ImGui context
-  const char *glsl_version = "#version 330 core";
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO &io = ImGui::GetIO();
-  (void)io;
-  ImGui_ImplGlfw_InitForOpenGL(window, true);
-  ImGui_ImplOpenGL3_Init(glsl_version);
-  ImGui::StyleColorsClassic();
-
-  std::cout << "gui finished initialization" << std::endl;
 }
 
 void GUI::main_loop(const std::function<void()> &callback)
@@ -70,6 +60,21 @@ void GUI::main_loop(const std::function<void()> &callback)
 RTGUI_particles::RTGUI_particles(int WIDTH, int HEIGHT)
     : GUI::GUI(WIDTH, HEIGHT)
 {
+  p_shader = std::make_unique<Shader>();
+  m_shader = std::make_unique<Shader>("../src/m_vert.glsl"s,
+                                      "../src/m_frag.glsl"s);
+
+  // Setup Dear ImGui context
+  const char *glsl_version = "#version 330 core";
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO &io = ImGui::GetIO();
+  (void)io;
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init(glsl_version);
+  ImGui::StyleColorsClassic();
+
+  std::cout << "gui finished initialization" << std::endl;
 }
 
 void RTGUI_particles::set_solver(PBDSolver *_solver)
@@ -77,7 +82,7 @@ void RTGUI_particles::set_solver(PBDSolver *_solver)
   solver = _solver;
 }
 
-void RTGUI_particles::set_particles(const std::vector<SPHParticle> &_p)
+void RTGUI_particles::set_particles(const vector<SPHParticle> &_p)
 {
   p = _p;
 
@@ -95,11 +100,28 @@ void RTGUI_particles::set_particles(const std::vector<SPHParticle> &_p)
   glBindVertexArray(VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-  if (mesh) {
-    // TODO: construct mesh
+  if (remesh) {
+    // TODO: construct remesh
+    if (mesh == nullptr)
+      construct_mesh();
+
+    glBufferData(GL_ARRAY_BUFFER,
+                 mesh->size() * sizeof(vec3),
+                 mesh->data(),
+                 GL_STREAM_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3) * 3, (void *)nullptr);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(
+        1, 3, GL_FLOAT, GL_FALSE, sizeof(vec3) * 3, (void *)sizeof(vec3));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(
+        2, 2, GL_FLOAT, GL_FALSE, sizeof(vec3) * 3, (void *)(2 * sizeof(vec3)));
   }
   else {
-    std::vector<float> points;
+    vector<float> points;
     points.reserve(p.size() * 4);
     for (auto &i : p) {
       points.push_back(i.pos.x);
@@ -127,6 +149,11 @@ void RTGUI_particles::set_particles(const std::vector<SPHParticle> &_p)
 
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void RTGUI_particles::set_mesh(bool _remesh)
+{
+  remesh = _remesh;
 }
 
 void RTGUI_particles::main_loop(const std::function<void()> &callback)
@@ -162,7 +189,7 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
       ImGui::SliderFloat("ext_f.y", &(solver->ext_f.y), -10.0f, 10.0f);
       ImGui::SliderFloat("ext_f.z", &(solver->ext_f.z), -10.0f, 10.0f);
       ImGui::Checkbox("rotate", &rotate);
-      ImGui::Checkbox("mesh", &mesh);
+      ImGui::Checkbox("remesh", &remesh);
       ImGui::End();
     }
 
@@ -189,7 +216,6 @@ void RTGUI_particles::render_particles() const
   static float rotate_y = 45.0f;
   if (rotate)
     rotate_y += 0.005;
-
   if (rotate_y > 360.0f)
     rotate_y = 0;
 
@@ -205,22 +231,32 @@ void RTGUI_particles::render_particles() const
       glm::radians(45.0f), static_cast<float>(width) / height, 0.1f, 100.0f);
 
   glBindVertexArray(VAO);
-
-  p_shader.use();
-  p_shader.set_mat4("model", model);
-  p_shader.set_mat4("view", view);
-  p_shader.set_mat4("projection", projection);
-
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_MULTISAMPLE);
 
-  if (mesh) {
-    // TODO: display mesh
+  assert(m_shader != nullptr);
+  if (remesh) {
+    // TODO: display remesh
+    model = glm::scale(model, vec3(border * 10.0f));
+    m_shader->use();
+    m_shader->set_mat4("model", model);
+    m_shader->set_mat4("view", view);
+    m_shader->set_mat4("projection", projection);
+    m_shader->set_vec3("object_color", glm::vec3(1.0f));
+    m_shader->set_vec3("light_color", glm::vec3(1.0f));
+    m_shader->set_vec3("light_pos", glm::vec3(0.0f));
+    m_shader->set_vec3("view_pos", camera_pos);
+    glDrawArrays(GL_TRIANGLES, 0, mesh->size() / 3);
   }
   else {
+    p_shader->use();
+    p_shader->set_mat4("model", model);
+    p_shader->set_mat4("view", view);
+    p_shader->set_mat4("projection", projection);
     glPointSize(1.8f);
     glDrawArrays(GL_POINTS, 0, p.size());
   }
+
   glBindVertexArray(0);
 }
 
@@ -230,7 +266,9 @@ void RTGUI_particles::del()
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
 
-  p_shader.del();
+  p_shader->del();
+  if (m_shader)
+    m_shader->del();
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
   glfwDestroyWindow(window);
@@ -260,5 +298,24 @@ void RTGUI_particles::refresh_fps() const
     glfwSetWindowTitle(window, win_title.str().c_str());
     n_frames = 0;
     last_time = cur_time;
+  }
+}
+
+void RTGUI_particles::construct_mesh()
+{
+  // Construct mesh from p
+  objl::Loader loader;
+  bool success = loader.LoadFile("../models/bunny/bunny.obj");
+  if (!success) {
+    std::cerr << "obj file load failed" << std::endl;
+    glfwTerminate();
+  }
+
+  std::cout << "obj mesh size: " << loader.LoadedMeshes.size() << std::endl;
+  mesh = std::make_shared<vector<vec3>>();
+  for (auto &i : loader.LoadedMeshes[0].Vertices) {
+    mesh->emplace_back(i.Position.X, i.Position.Y, i.Position.Z);
+    mesh->emplace_back(i.Normal.X, i.Normal.Y, i.Normal.Z);
+    mesh->emplace_back(i.TextureCoordinate.X, i.TextureCoordinate.Y, 0.0f);
   }
 }

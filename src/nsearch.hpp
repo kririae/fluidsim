@@ -20,18 +20,18 @@ class NSearch {
   // interface
   void build();
   void add_particle(const SPHParticle &p);
-  std::vector<SPHParticle> &get_data();
+  vector<SPHParticle> &get_data();
   [[nodiscard]] int n_points() const;
   [[nodiscard]] int n_neighbor(uint index) const;
   [[nodiscard]] int neighbor(uint index, uint neighbor_index) const;
-  std::vector<uint> &neighbor_vec(uint index);
+  vector<uint> &neighbor_vec(uint index);
 
  private:
   const float radius, radius2;
   const int n_grids;
-  std::vector<SPHParticle> data{};
-  std::vector<std::vector<uint>> neighbor_map{};
-  std::vector<std::vector<int>> hash_map{};
+  vector<SPHParticle> data{};
+  vector<vector<uint>> neighbor_map{};
+  vector<vector<int>> hash_map{};
 
   // hash function
   [[nodiscard]] inline int hash(float x, float y, float z) const;

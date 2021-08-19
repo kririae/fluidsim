@@ -1,7 +1,8 @@
-set(shader_files vert.glsl frag.glsl)
+# Copy shader files to build directory
+set(shader_files p_vert.glsl p_frag.glsl m_vert.glsl m_frag.glsl)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${shader_files} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pedantic -pedantic-errors -Werror -Wextra -Wshadow -Wpointer-arith -Wformat=2 -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pedantic -pedantic-errors -Wextra -Wshadow -Wpointer-arith -Wformat=2 -Wall")
 
 # Optimize options
 

@@ -17,7 +17,7 @@ NSearch::NSearch(float _radius)
       n_grids(int(glm::ceil(2 * border / radius) + 1))
 {
   // Initialize to index sort
-  hash_map = std::vector<std::vector<int>>(n_grids * n_grids * n_grids);
+  hash_map = vector<vector<int>>(n_grids * n_grids * n_grids);
 }
 
 void NSearch::add_particle(const SPHParticle &p)
@@ -25,7 +25,7 @@ void NSearch::add_particle(const SPHParticle &p)
   data.push_back(p);
 }
 
-std::vector<SPHParticle> &NSearch::get_data()
+vector<SPHParticle> &NSearch::get_data()
 {
   return data;
 }
@@ -47,7 +47,7 @@ int NSearch::neighbor(uint index, uint neighbor_index) const
 
 void NSearch::build()
 {
-  neighbor_map = std::vector<std::vector<uint>>(n_points());
+  neighbor_map = vector<vector<uint>>(n_points());
   const int data_size = int(data.size());
 
   // Clear previous information
@@ -72,7 +72,7 @@ void NSearch::build()
             continue;
 
           const int _hash_index = hash_from_grid(u, v, w);
-          const std::vector<int> &map_item = hash_map[_hash_index];
+          const vector<int> &map_item = hash_map[_hash_index];
           std::for_each(map_item.cbegin(), map_item.cend(), [&](int j) {
             if (center.dist2(data[j]) <= radius2 &&
                 neighbor_map[i].size() <= ulong(MAX_NEIGHBOR_SIZE))
@@ -113,7 +113,7 @@ inline int NSearch::hash_from_grid(const ivec3 &p) const
   return hash_from_grid(p.x, p.y, p.z);
 }
 
-std::vector<uint> &NSearch::neighbor_vec(uint index)
+vector<uint> &NSearch::neighbor_vec(uint index)
 {
   // the result should not be changed
   return neighbor_map[index];

@@ -30,7 +30,7 @@ class PBDSolver : public Solver {
   void callback() override;  // gui_ptr required
   void add_particle(const SPHParticle &p);
   static void constraint_to_border(SPHParticle &p);
-  std::vector<SPHParticle> &get_data();
+  vector<SPHParticle> &get_data();
 
   // PBF mathematics parts...
   float sph_calc_rho(int p_i);

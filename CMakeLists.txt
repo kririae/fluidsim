@@ -11,6 +11,10 @@ if (OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif ()
 
+# Copy models to build directory
+set(models "${PROJECT_SOURCE_DIR}/models")
+file(COPY models DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 add_subdirectory("${PROJECT_SOURCE_DIR}/src")
 add_subdirectory("${PROJECT_SOURCE_DIR}/samples")
 add_subdirectory("${PROJECT_SOURCE_DIR}/tests")

@@ -19,7 +19,7 @@ int main()
   std::uniform_real_distribution<float> dist(-border, border);
 
   RTGUI_particles gui(WIDTH, HEIGHT);
-  std::vector<SPHParticle> p;
+  vector<SPHParticle> p;
   p.reserve(NParticles);
   for (int i = 0; i < NParticles; ++i) {
     p.emplace_back(dist(mt), dist(mt), dist(mt));

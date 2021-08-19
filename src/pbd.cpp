@@ -46,7 +46,7 @@ void PBDSolver::callback()
   double c_i_sum = 0;
   long long n_neightbor_sum = 0;
 
-  std::vector<float> _lambda(data_size), c_i(data_size);
+  vector<float> _lambda(data_size), c_i(data_size);
   int iter_cnt = iter;
   while (iter_cnt--) {
 
@@ -182,7 +182,7 @@ inline float PBDSolver::compute_s_corr(int p_i, int p_j)
   return -k * fpow(poly6(r, radius) / poly6(delta_q, radius), n);
 }
 
-std::vector<SPHParticle> &PBDSolver::get_data()
+vector<SPHParticle> &PBDSolver::get_data()
 {
   return ch_ptr->get_data();
 }

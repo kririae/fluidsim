@@ -27,7 +27,7 @@ TEST(COMPACT_HASH, algorithm)
   const auto &data = ch.get_data();
 
   for (uint i = 0; i < data.size(); ++i) {
-    std::vector<int> cmp_vector_1, cmp_vector_2;
+    vector<int> cmp_vector_1, cmp_vector_2;
 
     for (uint j = 0; j < data.size(); ++j)
       if (data[i].dist(data[j]) <= radius)

@@ -19,13 +19,15 @@ constexpr float epsilon = 3e-5;
 constexpr float radius = 1.8f;
 // other pbf parameters are defined in pbd.cpp
 
+// For consideration of flexibility
 using color = glm::vec3;
 using vec3 = glm::vec3;
 using ivec3 = glm::ivec3;
+template<typename T> using vector = std::vector<T>;
 using namespace std::literals::string_literals;
 
+// Function definition
 vec3 color_ramp(float t, const color &col_left, const color &col_right);
-
 [[maybe_unused]] float fpow(float a, int b);
 
 class Random {

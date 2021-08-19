@@ -10,7 +10,8 @@
 
 class Shader {
  public:
-  Shader();
+  Shader(const std::string &vert = "../src/p_vert.glsl",
+         const std::string &frag = "../src/p_frag.glsl");
 
   virtual void del();
   virtual void use() const;

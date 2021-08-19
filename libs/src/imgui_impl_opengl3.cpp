@@ -40,7 +40,7 @@
 //  2019-09-22: OpenGL: Detect default GL loader using __has_include compiler
 //  facility. 2019-09-16: OpenGL: Tweak initialization code to allow application
 //  calling ImGui_ImplOpenGL3_CreateFontsTexture() before the first NewFrame()
-//  call. 2019-05-29: OpenGL: Desktop GL only: Added support for large mesh
+//  call. 2019-05-29: OpenGL: Desktop GL only: Added support for large remesh
 //  (64K+ vertices), enable ImGuiBackendFlags_RendererHasVtxOffset flag.
 //  2019-04-30: OpenGL: Added support for special
 //  ImDrawCallback_ResetRenderState callback to reset render state. 2019-03-29:

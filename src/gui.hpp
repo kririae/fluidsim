@@ -7,6 +7,7 @@
 
 #include "shader.hpp"
 #include <functional>
+#include <memory>
 
 class GLFWwindow;
 class SPHParticle;
@@ -32,23 +33,26 @@ class RTGUI_particles : public GUI {
   RTGUI_particles(int WIDTH, int HEIGHT);
   ~RTGUI_particles() override = default;
 
-  void set_particles(const std::vector<SPHParticle> &_p);
+  void set_particles(const vector<SPHParticle> &_p);
   void set_solver(PBDSolver *_solver);
+  void set_mesh(bool _remesh);
   void main_loop(const std::function<void()> &callback) override;
   void del();
 
  protected:
-  std::vector<SPHParticle> p{};
-  void render_particles() const;
+  vector<SPHParticle> p{};
   unsigned int VAO{}, VBO{};
-  Shader p_shader{};
+  std::unique_ptr<Shader> p_shader{}, m_shader{};
+  std::shared_ptr<vector<vec3>> mesh;
   PBDSolver *solver{};
   bool rotate = false;
-  bool mesh = false;
+  bool remesh = true;
 
  private:
+  void render_particles() const;
   void refresh_fps() const;
   void process_input();
+  void construct_mesh();
 };
 
 #endif  // PBF3D_SRC_GUI_HPP_

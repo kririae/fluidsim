@@ -172,18 +172,21 @@ struct Material {
 //	a name, a vertex list, and an index list
 struct Mesh {
   // Default Constructor
-  Mesh() {}
+  Mesh()
+  {
+  }
   // Variable Set Constructor
-  Mesh(std::vector<Vertex> &_Vertices, std::vector<unsigned int> &_Indices) {
+  Mesh(vector<Vertex> &_Vertices, vector<unsigned int> &_Indices)
+  {
     Vertices = _Vertices;
-    Indices  = _Indices;
+    Indices = _Indices;
   }
   // Mesh Name
   std::string MeshName;
   // Vertex List
-  std::vector<Vertex> Vertices;
+  vector<Vertex> Vertices;
   // Index List
-  std::vector<unsigned int> Indices;
+  vector<unsigned int> Indices;
 
   // Material
   Material MeshMaterial;
@@ -282,8 +285,9 @@ bool inTriangle(Vector3 point, Vector3 tri1, Vector3 tri2, Vector3 tri3) {
 
 // Split a String into a string array at a given token
 inline void split(const std::string &in,
-                  std::vector<std::string> &out,
-                  std::string token) {
+                  vector<std::string> &out,
+                  std::string token)
+{
   out.clear();
 
   std::string temp;
@@ -339,7 +343,8 @@ inline std::string firstToken(const std::string &in) {
 
 // Get element at given index position
 template<class T>
-inline const T &getElement(const std::vector<T> &elements, std::string &index) {
+inline const T &getElement(const vector<T> &elements, std::string &index)
+{
   int idx = std::stoi(index);
   if (idx < 0)
     idx = int(elements.size()) + idx;
@@ -378,14 +383,14 @@ public:
     LoadedVertices.clear();
     LoadedIndices.clear();
 
-    std::vector<Vector3> Positions;
-    std::vector<Vector2> TCoords;
-    std::vector<Vector3> Normals;
+    vector<Vector3> Positions;
+    vector<Vector2> TCoords;
+    vector<Vector3> Normals;
 
-    std::vector<Vertex> Vertices;
-    std::vector<unsigned int> Indices;
+    vector<Vertex> Vertices;
+    vector<unsigned int> Indices;
 
-    std::vector<std::string> MeshMatNames;
+    vector<std::string> MeshMatNames;
 
     bool listening = false;
     std::string meshname;
@@ -426,7 +431,7 @@ public:
             meshname = "unnamed";
           }
         } else {
-          // Generate the mesh to put into the array
+          // Generate the remesh to put into the array
 
           if (!Indices.empty() && !Vertices.empty()) {
             // Create Mesh
@@ -458,7 +463,7 @@ public:
       }
       // Generate a Vertex Position
       if (algorithm::firstToken(curline) == "v") {
-        std::vector<std::string> spos;
+        vector<std::string> spos;
         Vector3 vpos;
         algorithm::split(algorithm::tail(curline), spos, " ");
 
@@ -470,7 +475,7 @@ public:
       }
       // Generate a Vertex Texture Coordinate
       if (algorithm::firstToken(curline) == "vt") {
-        std::vector<std::string> stex;
+        vector<std::string> stex;
         Vector2 vtex;
         algorithm::split(algorithm::tail(curline), stex, " ");
 
@@ -481,7 +486,7 @@ public:
       }
       // Generate a Vertex Normal;
       if (algorithm::firstToken(curline) == "vn") {
-        std::vector<std::string> snor;
+        vector<std::string> snor;
         Vector3 vnor;
         algorithm::split(algorithm::tail(curline), snor, " ");
 
@@ -494,7 +499,7 @@ public:
       // Generate a Face (vertices & indices)
       if (algorithm::firstToken(curline) == "f") {
         // Generate the vertices
-        std::vector<Vertex> vVerts;
+        vector<Vertex> vVerts;
         GenVerticesFromRawOBJ(vVerts, Positions, TCoords, Normals, curline);
 
         // Add Vertices
@@ -504,7 +509,7 @@ public:
           LoadedVertices.push_back(vVerts[i]);
         }
 
-        std::vector<unsigned int> iIndices;
+        vector<unsigned int> iIndices;
 
         VertexTriangluation(iIndices, vVerts);
 
@@ -556,7 +561,7 @@ public:
         // Generate LoadedMaterial
 
         // Generate a path to the material file
-        std::vector<std::string> temp;
+        vector<std::string> temp;
         algorithm::split(Path, temp, "/");
 
         std::string pathtomat = "";
@@ -583,7 +588,7 @@ public:
     std::cout << std::endl;
 #endif
 
-    // Deal with last mesh
+    // Deal with last remesh
 
     if (!Indices.empty() && !Vertices.empty()) {
       // Create Mesh
@@ -601,7 +606,7 @@ public:
       std::string matname = MeshMatNames[i];
 
       // Find corresponding material name in loaded materials
-      // when found copy material variables into mesh material
+      // when found copy material variables into remesh material
       for (int j = 0; j < LoadedMaterials.size(); j++) {
         if (LoadedMaterials[j].name == matname) {
           LoadedMeshes[i].MeshMaterial = LoadedMaterials[j];
@@ -619,23 +624,24 @@ public:
   }
 
   // Loaded Mesh Objects
-  std::vector<Mesh> LoadedMeshes;
+  vector<Mesh> LoadedMeshes;
   // Loaded Vertex Objects
-  std::vector<Vertex> LoadedVertices;
+  vector<Vertex> LoadedVertices;
   // Loaded Index Positions
-  std::vector<unsigned int> LoadedIndices;
+  vector<unsigned int> LoadedIndices;
   // Loaded Material Objects
-  std::vector<Material> LoadedMaterials;
+  vector<Material> LoadedMaterials;
 
-private:
+ private:
   // Generate vertices from a list of positions,
   //	tcoords, normals and a face line
-  void GenVerticesFromRawOBJ(std::vector<Vertex> &oVerts,
-                             const std::vector<Vector3> &iPositions,
-                             const std::vector<Vector2> &iTCoords,
-                             const std::vector<Vector3> &iNormals,
-                             std::string icurline) {
-    std::vector<std::string> sface, svert;
+  void GenVerticesFromRawOBJ(vector<Vertex> &oVerts,
+                             const vector<Vector3> &iPositions,
+                             const vector<Vector2> &iTCoords,
+                             const vector<Vector3> &iNormals,
+                             std::string icurline)
+  {
+    vector<std::string> sface, svert;
     Vertex vVert;
     algorithm::split(algorithm::tail(icurline), sface, " ");
 
@@ -714,7 +720,7 @@ private:
 
     // take care of missing normals
     // these may not be truly acurate but it is the
-    // best they get for not compiling a mesh with normals
+    // best they get for not compiling a remesh with normals
     if (noNormal) {
       Vector3 A = oVerts[0].Position - oVerts[1].Position;
       Vector3 B = oVerts[2].Position - oVerts[1].Position;
@@ -729,8 +735,9 @@ private:
 
   // Triangulate a list of vertices into a face by printing
   //	inducies corresponding with triangles within it
-  void VertexTriangluation(std::vector<unsigned int> &oIndices,
-                           const std::vector<Vertex> &iVerts) {
+  void VertexTriangluation(vector<unsigned int> &oIndices,
+                           const vector<Vertex> &iVerts)
+  {
     // If there are 2 or less verts,
     // no triangle can be created,
     // so exit
@@ -746,7 +753,7 @@ private:
     }
 
     // Create a list of vertices
-    std::vector<Vertex> tVerts = iVerts;
+    vector<Vertex> tVerts = iVerts;
 
     while (true) {
       // For every vertex
@@ -925,7 +932,7 @@ private:
       }
       // Ambient Color
       if (algorithm::firstToken(curline) == "Ka") {
-        std::vector<std::string> temp;
+        vector<std::string> temp;
         algorithm::split(algorithm::tail(curline), temp, " ");
 
         if (temp.size() != 3)
@@ -937,7 +944,7 @@ private:
       }
       // Diffuse Color
       if (algorithm::firstToken(curline) == "Kd") {
-        std::vector<std::string> temp;
+        vector<std::string> temp;
         algorithm::split(algorithm::tail(curline), temp, " ");
 
         if (temp.size() != 3)
@@ -949,7 +956,7 @@ private:
       }
       // Specular Color
       if (algorithm::firstToken(curline) == "Ks") {
-        std::vector<std::string> temp;
+        vector<std::string> temp;
         algorithm::split(algorithm::tail(curline), temp, " ");
 
         if (temp.size() != 3)
