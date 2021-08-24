@@ -29,19 +29,19 @@ class PBDSolver : public Solver {
   void set_gui(RTGUI_particles *gui) noexcept;
   void callback() override;  // gui_ptr required
   void add_particle(const SPHParticle &p);
+  hvector<SPHParticle> &get_data();
   static void constraint_to_border(SPHParticle &p);
-  vector<SPHParticle> &get_data();
 
   // PBF mathematics parts...
-  float sph_calc_rho(int p_i);
-  vec3 grad_c(int p_i, int p_k);
-  static float poly6(float r, float d) noexcept;
-  static vec3 grad_spiky(vec3 v, float d) noexcept;
-  inline float compute_s_corr(int p_i, int p_j);
+  CUDA_FUNC_DEC static float poly6(float r, float h) noexcept;
+  CUDA_FUNC_DEC static vec3 grad_spiky(vec3 v, float h) noexcept;
+  CUDA_FUNC_DEC static float compute_s_corr(const SPHParticle &p_i,
+                                            const SPHParticle &p_j,
+                                            float h);
 
  private:
   RTGUI_particles *gui_ptr{nullptr};
-  float radius, radius2, mass{0}, delta_t{1.0f / 60.0f};
+  float _radius, radius2, mass{0}, delta_t{1.0f / 60.0f};
 };
 
 #endif  // PBF3D_SRC_PBD_HPP_

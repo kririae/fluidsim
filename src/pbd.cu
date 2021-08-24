@@ -2,14 +2,15 @@
 // Created by kr2 on 8/10/21.
 //
 
+#include "cu_common.cuh"
 #include "pbd.hpp"
 #include <chrono>
 #include <iostream>
 
 PBDSolver::PBDSolver(float _radius)
     : ch_ptr(std::make_shared<NSearch>(_radius)),
-      radius(_radius),
-      radius2(radius * radius)
+      _radius(_radius),
+      radius2(_radius * _radius)
 {
   mass = 4.0f / 3.0f * glm::pi<float>() * radius2;
 }
@@ -25,16 +26,16 @@ void PBDSolver::callback()
 
   static int interval = 60;
 
-  auto &data = get_data();
-  const auto pre_data = data;  // copy
+  hvector<SPHParticle> &data = get_data();
+  const hvector<SPHParticle> pre_data = data;  // copy
   const int data_size = data.size();
 
   // Apply forces
-  for (auto &i : data) {
-    i.v += delta_t * ext_f;
-    i.pos += delta_t * i.v;
-    constraint_to_border(i);
-  }
+  thrust::for_each(data.begin(), data.end(), [&](SPHParticle &item) {
+    item.v += delta_t * ext_f;
+    item.pos += delta_t * item.v;
+    constraint_to_border(item);
+  });
 
   // find all neighbors
   auto dt_start = std::chrono::system_clock::now();
@@ -43,37 +44,48 @@ void PBDSolver::callback()
 
   auto start = std::chrono::system_clock::now();
   // Jacobi iteration
-  double c_i_sum = 0;
-  long long n_neightbor_sum = 0;
 
-  vector<float> _lambda(data_size), c_i(data_size);
+  hvector<float> _lambda(data_size), c_i(data_size);
   int iter_cnt = iter;
   while (iter_cnt--) {
-
-#pragma omp parallel for default(none) \
-    shared(data_size, c_i, c_i_sum, n_neightbor_sum, _lambda)
     for (int i = 0; i < data_size; ++i) {
-      // Basic calculation
-      const float rho = sph_calc_rho(i);
-      c_i[i] = glm::max(rho / rho_0 - 1, 0.0f);
-      c_i_sum += c_i[i];
-      n_neightbor_sum += ch_ptr->n_neighbor(i);
-
-      float _denom = 0.0f;
       const auto &neighbor_vec = ch_ptr->neighbor_vec(i);
+
+      // --- calculate rho ---
+      float rho = 0.0f;
       for (const auto &j : neighbor_vec)
-        _denom += fpow(glm::length(grad_c(i, j)), 2.0f);
+        rho += mass * poly6(glm::length(data[i].pos - data[j].pos), _radius);
+
+      c_i[i] = glm::max(rho / rho_0 - 1, 0.0f);
+
+      // --- calculate grad_c ---
+      float _denom = 0.0f;
+      for (const auto &j : neighbor_vec) {
+        vec3 grad_c(0.0f);
+        if (i == j) {
+          for (int k = 0; k < ch_ptr->n_neighbor(i); ++k) {
+            const int neighbor_index = ch_ptr->neighbor(i, k);
+            grad_c += grad_spiky(data[i].pos - data[neighbor_index].pos,
+                                 _radius);
+          }
+        } else {
+          grad_c = -grad_spiky(data[i].pos - data[j].pos, _radius);
+        }
+
+        grad_c = 1.0f / rho_0 * grad_c;
+        _denom += fast_pow(glm::length(grad_c), 2.0f);
+      }
 
       _lambda[i] = -c_i[i] / (_denom + denom_epsilon);
     }
 
-#pragma omp parallel for default(none) shared(data_size, _lambda, data, c_i)
     for (int i = 0; i < data_size; ++i) {
       vec3 delta_p_i(0.0f);
       const auto &neighbor_vec = ch_ptr->neighbor_vec(i);
       for (const auto &j : neighbor_vec) {
-        delta_p_i += (_lambda[i] + _lambda[j] + compute_s_corr(i, j)) *
-                     grad_spiky(data[i].pos - data[j].pos, radius);
+        delta_p_i += (_lambda[i] + _lambda[j] +
+                      compute_s_corr(data[i], data[j], radius)) *
+                     grad_spiky(data[i].pos - data[j].pos, _radius);
       }
 
       delta_p_i *= 1.0f / rho_0;
@@ -96,6 +108,9 @@ void PBDSolver::callback()
   if ((--interval) != 0)
     return;
 
+  float c_i_sum = thrust::reduce(
+      c_i.begin(), c_i.end(), 0.0f, thrust::plus<float>());
+
   interval = 60;
   std::cout << "--- callback start (interval: 60) ---" << std::endl;
   std::cout << "NParticles: " << data_size << std::endl;
@@ -106,8 +121,7 @@ void PBDSolver::callback()
   std::chrono::duration<float> diff = end - start;
   std::cout << "calculation complete: " << diff.count() * 1000 << "ms"
             << std::endl;
-  std::cout << "avg c_i: " << c_i_sum / data_size / iter << " | n_neighbor: "
-            << static_cast<float>(n_neightbor_sum) / data_size / iter
+  std::cout << "avg c_i: " << c_i_sum / data_size << " | n_neighbor: <null>"
             << std::endl;
   std::cout << std::endl;
 }
@@ -118,6 +132,11 @@ void PBDSolver::add_particle(const SPHParticle &p)
   ch_ptr->add_particle(p);
 }
 
+hvector<SPHParticle> &PBDSolver::get_data()
+{
+  return ch_ptr->get_data();
+}
+
 void PBDSolver::constraint_to_border(SPHParticle &p)
 {
   p.pos += epsilon * vec3(rd_global.rand(), rd_global.rand(), rd_global.rand());
@@ -126,63 +145,35 @@ void PBDSolver::constraint_to_border(SPHParticle &p)
   p.pos.z = glm::clamp(p.pos.z, -border, border);
 }
 
-float PBDSolver::sph_calc_rho(int p_i)
+// On both platform
+CUDA_FUNC_DEC
+float PBDSolver::poly6(float r, float h) noexcept
 {
-  float rho = 0;
-  const auto &data = get_data();
-  for (int i = 0; i < ch_ptr->n_neighbor(p_i); ++i) {
-    const int neighbor_index = ch_ptr->neighbor(p_i, i);
-    rho += mass *
-           poly6(glm::length(data[p_i].pos - data[neighbor_index].pos), radius);
-  }
-  return rho;
-}
-
-vec3 PBDSolver::grad_c(int p_i, int p_k)
-{
-  // Assume CH is built
-  const auto &data = get_data();
-  vec3 res(0.0f);
-  if (p_i == p_k) {
-    for (int i = 0; i < ch_ptr->n_neighbor(p_i); ++i) {
-      const int neighbor_index = ch_ptr->neighbor(p_i, i);
-      res += grad_spiky(data[p_i].pos - data[neighbor_index].pos, radius);
-    }
-  }
-  else {
-    res = -grad_spiky(data[p_i].pos - data[p_k].pos, radius);
-  }
-  return 1.0f / rho_0 * res;
-}
-
-float PBDSolver::poly6(float r, float d) noexcept
-{
-  r = glm::clamp(glm::abs(r), 0.0f, d);
-  const float t = (d * d - r * r) / (d * d * d);
+  r = glm::clamp(glm::abs(r), 0.0f, h);
+  const float t = (h * h - r * r) / (h * h * h);
   return 315.0f / (64 * glm::pi<float>()) * t * t * t;
 }
 
-vec3 PBDSolver::grad_spiky(vec3 v, float d) noexcept
+CUDA_FUNC_DEC
+vec3 PBDSolver::grad_spiky(vec3 v, float h) noexcept
 {
   float len = glm::length(v);
   vec3 res(0.0f);
-  if (0 < len && len <= d)
-    res = float(-45 / (glm::pi<float>() * fpow(d, 6)) * fpow(d - len, 2)) * v /
-          len;
+  if (0 < len && len <= h)
+    res = float(-45 / (glm::pi<float>() * fast_pow(h, 6)) *
+                fast_pow(h - len, 2)) *
+          v / len;
   return res;
 }
 
-inline float PBDSolver::compute_s_corr(int p_i, int p_j)
+CUDA_FUNC_DEC
+float PBDSolver::compute_s_corr(const SPHParticle &p_i,
+                                const SPHParticle &p_j,
+                                float h)
 {
   float k = 0.1f;  // k
   float n = 4.0f;
-  float delta_q = 0.3f * radius;
-  const auto &data = get_data();
-  float r = glm::length(data[p_i].pos - data[p_j].pos);
-  return -k * fpow(poly6(r, radius) / poly6(delta_q, radius), n);
-}
-
-vector<SPHParticle> &PBDSolver::get_data()
-{
-  return ch_ptr->get_data();
+  float delta_q = 0.3f * h;
+  float r = glm::length(p_i.pos - p_j.pos);
+  return -k * fast_pow(poly6(r, h) / poly6(delta_q, h), n);
 }

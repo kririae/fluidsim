@@ -82,7 +82,7 @@ void RTGUI_particles::set_solver(PBDSolver *_solver)
   solver = _solver;
 }
 
-void RTGUI_particles::set_particles(const vector<SPHParticle> &_p)
+void RTGUI_particles::set_particles(const hvector<SPHParticle> &_p)
 {
   p = _p;
 
@@ -121,7 +121,7 @@ void RTGUI_particles::set_particles(const vector<SPHParticle> &_p)
         2, 2, GL_FLOAT, GL_FALSE, sizeof(vec3) * 3, (void *)(2 * sizeof(vec3)));
   }
   else {
-    vector<float> points;
+    hvector<float> points;
     points.reserve(p.size() * 4);
     for (auto &i : p) {
       points.push_back(i.pos.x);
@@ -188,6 +188,7 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
       ImGui::SliderFloat("ext_f.x", &(solver->ext_f.x), -10.0f, 10.0f);
       ImGui::SliderFloat("ext_f.y", &(solver->ext_f.y), -10.0f, 10.0f);
       ImGui::SliderFloat("ext_f.z", &(solver->ext_f.z), -10.0f, 10.0f);
+      ImGui::SliderFloat("meta _radius", &meta_radius, 0.5f, 5.0f);
       ImGui::Checkbox("rotate", &rotate);
       ImGui::Checkbox("remesh", &remesh);
       ImGui::End();
@@ -220,7 +221,6 @@ void RTGUI_particles::render_particles() const
     rotate_y = 0;
 
   auto model = glm::translate(glm::mat4(1.0f), vec3(0));
-  model = glm::scale(model, vec3(1 / border));
   model = glm::rotate(model, rotate_y, vec3(0.0f, 1.0f, 0.0f));
 
   auto camera_pos = vec3(0.0f, 3.0f, 6.0f);
@@ -236,19 +236,22 @@ void RTGUI_particles::render_particles() const
 
   assert(m_shader != nullptr);
   if (remesh) {
-    // TODO: display remesh
-    model = glm::scale(model, vec3(border * 10.0f));
+    // model = glm::scale(model, vec3(border));
+
+    assert(mesh != nullptr);
+
     m_shader->use();
     m_shader->set_mat4("model", model);
     m_shader->set_mat4("view", view);
     m_shader->set_mat4("projection", projection);
     m_shader->set_vec3("object_color", glm::vec3(1.0f));
     m_shader->set_vec3("light_color", glm::vec3(1.0f));
-    m_shader->set_vec3("light_pos", glm::vec3(0.0f));
+    m_shader->set_vec3("light_pos", camera_pos);
     m_shader->set_vec3("view_pos", camera_pos);
     glDrawArrays(GL_TRIANGLES, 0, mesh->size() / 3);
   }
   else {
+    model = glm::scale(model, vec3(1 / border));
     p_shader->use();
     p_shader->set_mat4("model", model);
     p_shader->set_mat4("view", view);
@@ -265,10 +268,8 @@ void RTGUI_particles::del()
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
-
   p_shader->del();
-  if (m_shader)
-    m_shader->del();
+  m_shader->del();
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
   glfwDestroyWindow(window);
@@ -304,6 +305,8 @@ void RTGUI_particles::refresh_fps() const
 void RTGUI_particles::construct_mesh()
 {
   // Construct mesh from p
+
+  // OBJ_Loader version
   objl::Loader loader;
   bool success = loader.LoadFile("../models/bunny/bunny.obj");
   if (!success) {
@@ -312,10 +315,23 @@ void RTGUI_particles::construct_mesh()
   }
 
   std::cout << "obj mesh size: " << loader.LoadedMeshes.size() << std::endl;
-  mesh = std::make_shared<vector<vec3>>();
+  mesh = std::make_shared<hvector<vec3>>();
   for (auto &i : loader.LoadedMeshes[0].Vertices) {
     mesh->emplace_back(i.Position.X, i.Position.Y, i.Position.Z);
     mesh->emplace_back(i.Normal.X, i.Normal.Y, i.Normal.Z);
     mesh->emplace_back(i.TextureCoordinate.X, i.TextureCoordinate.Y, 0.0f);
+  }
+
+  auto calc_meta = [](const vec3 &p, const vec3 &p_0) -> float {
+    return 1 / glm::length(p - p_0);  // TODO: to be expanded to avoid division
+  };
+
+  // divide scope in [border] into 3d grids
+  for (float x = -border; x <= border; x += grid_size) {
+    for (float y = -border; y <= border; y += grid_size) {
+      for (float z = -border; z <= border; z += grid_size) {
+        ;  // TODO
+      }
+    }
   }
 }

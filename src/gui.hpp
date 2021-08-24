@@ -33,20 +33,24 @@ class RTGUI_particles : public GUI {
   RTGUI_particles(int WIDTH, int HEIGHT);
   ~RTGUI_particles() override = default;
 
-  void set_particles(const vector<SPHParticle> &_p);
+  void set_particles(const hvector<SPHParticle> &_p);
   void set_solver(PBDSolver *_solver);
   void set_mesh(bool _remesh);
   void main_loop(const std::function<void()> &callback) override;
   void del();
 
  protected:
-  vector<SPHParticle> p{};
+  hvector<SPHParticle> p{};
+  // std::shared_ptr<hvector<SPHParticle>> p{};
+
   unsigned int VAO{}, VBO{};
   std::unique_ptr<Shader> p_shader{}, m_shader{};
-  std::shared_ptr<vector<vec3>> mesh;
+  std::shared_ptr<hvector<vec3>> mesh;
   PBDSolver *solver{};
   bool rotate = false;
-  bool remesh = true;
+  bool remesh = false;
+  float meta_radius = 1.0f;  //  metaball_radius
+  float grid_size = 0.2f;
 
  private:
   void render_particles() const;
