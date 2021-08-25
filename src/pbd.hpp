@@ -16,7 +16,6 @@ class SPHParticle;
 class PBDSolver : public Solver {
  public:
   float rho_0 = 10.0f;
-  float denom_epsilon = 20.0f;
   int iter = 3;
   vec3 ext_f = vec3(0.0f, -9.8f, 0.0f);
   std::shared_ptr<NSearch> ch_ptr;  // TODO: expose the interface temporary
@@ -41,7 +40,27 @@ class PBDSolver : public Solver {
 
  private:
   RTGUI_particles *gui_ptr{nullptr};
-  float _radius, radius2, mass{0}, delta_t{1.0f / 60.0f};
+  float radius, radius2, mass{0}, delta_t{1.0f / 60.0f};
 };
+
+static __attribute__((global)) void fill_lambda(SPHParticle *dev_data,
+                                                int *dev_neighbor_map,
+                                                size_t pitch,
+                                                const int *dev_n_neighbor_map,
+                                                float *_lambda,
+                                                float *c_i,
+                                                size_t data_size,
+                                                float rho_0,
+                                                float _radius,
+                                                float mass);
+static __attribute__((global)) void apply_motion(SPHParticle *dev_data,
+                                                 const int *dev_neighbor_map,
+                                                 size_t pitch,
+                                                 const int *dev_n_neighbor_map,
+                                                 const float *_lambda,
+                                                 const float *c_i,
+                                                 size_t data_size,
+                                                 float rho_0,
+                                                 float _radius);
 
 #endif  // PBF3D_SRC_PBD_HPP_

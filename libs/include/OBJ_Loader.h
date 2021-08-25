@@ -176,7 +176,7 @@ struct Mesh {
   {
   }
   // Variable Set Constructor
-  Mesh(vector<Vertex> &_Vertices, vector<unsigned int> &_Indices)
+  Mesh(std::vector<Vertex> &_Vertices, std::vector<unsigned int> &_Indices)
   {
     Vertices = _Vertices;
     Indices = _Indices;
@@ -184,9 +184,9 @@ struct Mesh {
   // Mesh Name
   std::string MeshName;
   // Vertex List
-  vector<Vertex> Vertices;
+  std::vector<Vertex> Vertices;
   // Index List
-  vector<unsigned int> Indices;
+  std::vector<unsigned int> Indices;
 
   // Material
   Material MeshMaterial;
@@ -285,7 +285,7 @@ bool inTriangle(Vector3 point, Vector3 tri1, Vector3 tri2, Vector3 tri3) {
 
 // Split a String into a string array at a given token
 inline void split(const std::string &in,
-                  vector<std::string> &out,
+                  std::vector<std::string> &out,
                   std::string token)
 {
   out.clear();
@@ -343,7 +343,7 @@ inline std::string firstToken(const std::string &in) {
 
 // Get element at given index position
 template<class T>
-inline const T &getElement(const vector<T> &elements, std::string &index)
+inline const T &getElement(const std::vector<T> &elements, std::string &index)
 {
   int idx = std::stoi(index);
   if (idx < 0)
@@ -383,14 +383,14 @@ public:
     LoadedVertices.clear();
     LoadedIndices.clear();
 
-    vector<Vector3> Positions;
-    vector<Vector2> TCoords;
-    vector<Vector3> Normals;
+    std::vector<Vector3> Positions;
+    std::vector<Vector2> TCoords;
+    std::vector<Vector3> Normals;
 
-    vector<Vertex> Vertices;
-    vector<unsigned int> Indices;
+    std::vector<Vertex> Vertices;
+    std::vector<unsigned int> Indices;
 
-    vector<std::string> MeshMatNames;
+    std::vector<std::string> MeshMatNames;
 
     bool listening = false;
     std::string meshname;
@@ -463,7 +463,7 @@ public:
       }
       // Generate a Vertex Position
       if (algorithm::firstToken(curline) == "v") {
-        vector<std::string> spos;
+        std::vector<std::string> spos;
         Vector3 vpos;
         algorithm::split(algorithm::tail(curline), spos, " ");
 
@@ -475,7 +475,7 @@ public:
       }
       // Generate a Vertex Texture Coordinate
       if (algorithm::firstToken(curline) == "vt") {
-        vector<std::string> stex;
+        std::vector<std::string> stex;
         Vector2 vtex;
         algorithm::split(algorithm::tail(curline), stex, " ");
 
@@ -486,7 +486,7 @@ public:
       }
       // Generate a Vertex Normal;
       if (algorithm::firstToken(curline) == "vn") {
-        vector<std::string> snor;
+        std::vector<std::string> snor;
         Vector3 vnor;
         algorithm::split(algorithm::tail(curline), snor, " ");
 
@@ -499,7 +499,7 @@ public:
       // Generate a Face (vertices & indices)
       if (algorithm::firstToken(curline) == "f") {
         // Generate the vertices
-        vector<Vertex> vVerts;
+        std::vector<Vertex> vVerts;
         GenVerticesFromRawOBJ(vVerts, Positions, TCoords, Normals, curline);
 
         // Add Vertices
@@ -509,7 +509,7 @@ public:
           LoadedVertices.push_back(vVerts[i]);
         }
 
-        vector<unsigned int> iIndices;
+        std::vector<unsigned int> iIndices;
 
         VertexTriangluation(iIndices, vVerts);
 
@@ -561,7 +561,7 @@ public:
         // Generate LoadedMaterial
 
         // Generate a path to the material file
-        vector<std::string> temp;
+        std::vector<std::string> temp;
         algorithm::split(Path, temp, "/");
 
         std::string pathtomat = "";
@@ -624,24 +624,24 @@ public:
   }
 
   // Loaded Mesh Objects
-  vector<Mesh> LoadedMeshes;
+  std::vector<Mesh> LoadedMeshes;
   // Loaded Vertex Objects
-  vector<Vertex> LoadedVertices;
+  std::vector<Vertex> LoadedVertices;
   // Loaded Index Positions
-  vector<unsigned int> LoadedIndices;
+  std::vector<unsigned int> LoadedIndices;
   // Loaded Material Objects
-  vector<Material> LoadedMaterials;
+  std::vector<Material> LoadedMaterials;
 
  private:
   // Generate vertices from a list of positions,
   //	tcoords, normals and a face line
-  void GenVerticesFromRawOBJ(vector<Vertex> &oVerts,
-                             const vector<Vector3> &iPositions,
-                             const vector<Vector2> &iTCoords,
-                             const vector<Vector3> &iNormals,
+  void GenVerticesFromRawOBJ(std::vector<Vertex> &oVerts,
+                             const std::vector<Vector3> &iPositions,
+                             const std::vector<Vector2> &iTCoords,
+                             const std::vector<Vector3> &iNormals,
                              std::string icurline)
   {
-    vector<std::string> sface, svert;
+    std::vector<std::string> sface, svert;
     Vertex vVert;
     algorithm::split(algorithm::tail(icurline), sface, " ");
 
@@ -735,8 +735,8 @@ public:
 
   // Triangulate a list of vertices into a face by printing
   //	inducies corresponding with triangles within it
-  void VertexTriangluation(vector<unsigned int> &oIndices,
-                           const vector<Vertex> &iVerts)
+  void VertexTriangluation(std::vector<unsigned int> &oIndices,
+                           const std::vector<Vertex> &iVerts)
   {
     // If there are 2 or less verts,
     // no triangle can be created,
@@ -753,7 +753,7 @@ public:
     }
 
     // Create a list of vertices
-    vector<Vertex> tVerts = iVerts;
+    std::vector<Vertex> tVerts = iVerts;
 
     while (true) {
       // For every vertex
@@ -932,7 +932,7 @@ public:
       }
       // Ambient Color
       if (algorithm::firstToken(curline) == "Ka") {
-        vector<std::string> temp;
+        std::vector<std::string> temp;
         algorithm::split(algorithm::tail(curline), temp, " ");
 
         if (temp.size() != 3)
@@ -944,7 +944,7 @@ public:
       }
       // Diffuse Color
       if (algorithm::firstToken(curline) == "Kd") {
-        vector<std::string> temp;
+        std::vector<std::string> temp;
         algorithm::split(algorithm::tail(curline), temp, " ");
 
         if (temp.size() != 3)
@@ -956,7 +956,7 @@ public:
       }
       // Specular Color
       if (algorithm::firstToken(curline) == "Ks") {
-        vector<std::string> temp;
+        std::vector<std::string> temp;
         algorithm::split(algorithm::tail(curline), temp, " ");
 
         if (temp.size() != 3)

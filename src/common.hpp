@@ -37,15 +37,14 @@ using namespace std::literals::string_literals;
 class Random {
  public:
   Random() noexcept;
-  ~Random() noexcept;
+  ~Random() noexcept = default;
 
   float rand();
-  void fill_buffer() noexcept;
 
  private:
-  static constexpr size_t buffer_size = 1024 << 3;
-  int used{0};
-  float *dev_data, *host_data;
+  std::random_device rd{};
+  std::mt19937 mt;
+  std::uniform_real_distribution<float> dist;
 };
 
 extern Random rd_global;

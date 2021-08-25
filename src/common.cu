@@ -25,38 +25,13 @@
   return (1 - t) * col_left + t * col_right;
 }
 
-Random::Random() noexcept
+Random::Random() noexcept : mt(rd()), dist(-border, border)
 {
-  host_data = (float *)calloc(buffer_size, sizeof(float));
-  CUDA_CALL(cudaMalloc((void **)&dev_data, buffer_size * sizeof(float)));
-  fill_buffer();
-}
-
-void Random::fill_buffer() noexcept
-{
-  curandGenerator_t gen;
-  CURAND_CALL(curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT));
-  CURAND_CALL(curandGenerateUniform(gen, dev_data, buffer_size));
-  CUDA_CALL(cudaMemcpy(host_data,
-                       dev_data,
-                       buffer_size * sizeof(float),
-                       cudaMemcpyDeviceToHost));
 }
 
 float Random::rand()
 {
-  float res = host_data[used++];
-  if (used == buffer_size) {
-    used = 0;
-    fill_buffer();
-  }
-  return res;
-}
-
-Random::~Random() noexcept
-{
-  delete[] host_data;
-  cudaFree(dev_data);
+  return dist(mt);
 }
 
 [[maybe_unused]] Random rd_global;

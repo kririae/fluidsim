@@ -7,11 +7,11 @@
 
 #include "particle.hpp"
 
-constexpr int MAX_NEIGHBOR_SIZE = 60;
-
 class NSearch {
   // Currently, a poor implementation (for correctness)
  public:
+  static constexpr int MAX_NEIGHBOR_SIZE = 60;
+
   explicit NSearch(float _radius);
   NSearch(const NSearch &CH) = delete;
   NSearch &operator=(const NSearch &CH) = delete;
