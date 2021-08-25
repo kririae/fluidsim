@@ -3,7 +3,6 @@
 //
 
 #include "common.hpp"
-#include "nsearch.hpp"
 #include "gtest/gtest.h"
 #include <random>
 #include <vector>

@@ -24,14 +24,3 @@
 {
   return (1 - t) * col_left + t * col_right;
 }
-
-Random::Random() noexcept : mt(rd()), dist(-border, border)
-{
-}
-
-float Random::rand()
-{
-  return dist(mt);
-}
-
-[[maybe_unused]] Random rd_global;
