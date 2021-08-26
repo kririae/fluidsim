@@ -3,21 +3,16 @@
 //
 
 #include "cu_common.cuh"
+#include "curand_kernel.h"
 #include "particle.hpp"
 #include "pbd.hpp"
+#include "rand_unit.cuh"
 #include <chrono>
 #include <iostream>
-#include <thrust/random.h>
+
+#define RAW_PTR(o) (thrust::raw_pointer_cast((o).data()))
 
 constexpr float denom_epsilon = 20.0f;
-
-static CUDA_FUNC_DEC float dev_rand()
-{
-  // TODO
-  thrust::random::default_random_engine rng;
-  thrust::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-  return dist(rng);
-}
 
 PBDSolver::PBDSolver(float _radius)
     : radius(_radius), radius2(_radius * _radius)
@@ -37,118 +32,107 @@ void PBDSolver::callback()
 
   static int interval = 60;
 
-  constexpr int threads_per_block = 1024;
+  // for data_size linear parallel
   const int data_size = int(data.size());
-  const int num_blocks = (data_size + threads_per_block) / threads_per_block;
 
-  CUDA_CALL(cudaMalloc(&_lambda, sizeof(float) * data_size));
-  CUDA_CALL(cudaMalloc(&c_i, sizeof(float) * data_size));
+  constexpr int threads_per_block = 1024;
+  const int num_blocks = (data_size + threads_per_block - 1) /
+                         threads_per_block;
 
-  SPHParticle *pre_data, *dev_data;
-  CUDA_CALL(cudaMalloc(&pre_data, sizeof(SPHParticle) * data_size));
-  CUDA_CALL(cudaMalloc(&dev_data, sizeof(SPHParticle) * data_size));
-
-  // 1 H to D memory copy.
-  // Copy particle data to device
-  CUDA_CALL(cudaMemcpy(pre_data,
-                       data.data(),
-                       data_size * sizeof(SPHParticle),
-                       cudaMemcpyHostToDevice));
-  CUDA_CALL(cudaMemcpy(dev_data,
-                       pre_data,
-                       data_size * sizeof(SPHParticle),
-                       cudaMemcpyDeviceToDevice));
+  int *dev_neighbor_map;
+  dvector<float> lambda(data_size), c_i(data_size);
+  dvector<SPHParticle> pre_data(data.begin(), data.end());
+  dvector<SPHParticle> dev_data = pre_data;
+  dvector<int> dev_n_neighbor_map(data_size, 0);
 
   // Apply forces, on host
   apply_force<<<num_blocks, threads_per_block>>>(
-      dev_data, delta_t, ext_f, data_size, border);
+      RAW_PTR(dev_data), data_size, ext_f, delta_t);
 
   // find all neighbors
   auto dt_start = std::chrono::system_clock::now();
 
   // Block of building
   {
-    int *dev_hash_map, *dev_n_hash_map;
+    const auto map_size = (size_t)glm::pow(n_grids, 3.0f);
+    dvector<int> hash_map_mutex(map_size, 0);
+    dvector<int> dev_n_hash_map(map_size, 0);
 
+    int *dev_hash_map;
     size_t pitch_hash;
     CUDA_CALL(
         cudaMallocPitch(&dev_hash_map,
                         &pitch_hash,
                         MAX_NEIGHBOR_SIZE * sizeof(int),  // risk of exceed
-                        n_grids * n_grids * n_grids));
-    CUDA_CALL(
-        cudaMalloc(&dev_n_hash_map, sizeof(int) * n_grids * n_grids * n_grids));
-    CUDA_CALL(cudaMemset(
-        dev_n_hash_map, 0, sizeof(int) * n_grids * n_grids * n_grids));
+                        map_size));
+    CUDA_CALL(cudaMallocPitch(&dev_neighbor_map,
+                              &pitch_neighbor,
+                              MAX_NEIGHBOR_SIZE * sizeof(int),
+                              data_size));
 
-    CUDA_CALL(cudaMallocPitch(
-        &dev_neighbor_map, &pitch, MAX_NEIGHBOR_SIZE * sizeof(int), data_size));
-    CUDA_CALL(cudaMalloc(&dev_n_neighbor_map, sizeof(int) * data_size));
-    CUDA_CALL(cudaMemset(dev_n_neighbor_map, 0, sizeof(int) * data_size));
+    // build_hash_map<<<1, 1>>>(
+    //     RAW_PTR(dev_data),
+    build_hash_map<<<num_blocks, threads_per_block>>>(RAW_PTR(dev_data),
+                                                      data_size,
+                                                      dev_hash_map,
+                                                      RAW_PTR(dev_n_hash_map),
+                                                      n_grids,
+                                                      pitch_hash,
+                                                      RAW_PTR(hash_map_mutex));
 
-    build_hash_map<<<num_blocks, threads_per_block>>>(
-        dev_data, data_size, dev_hash_map, dev_n_hash_map, n_grids, pitch_hash);
-
-    build_neighbor_map<<<num_blocks, threads_per_block>>>(dev_data,
-                                                          data_size,
-                                                          dev_neighbor_map,
-                                                          dev_n_neighbor_map,
-                                                          dev_hash_map,
-                                                          dev_n_hash_map,
-                                                          n_grids,
-                                                          pitch,
-                                                          pitch_hash);
+    // build_neighbor_map<<<1, 1>>>(
+    build_neighbor_map<<<num_blocks, threads_per_block>>>(
+        RAW_PTR(dev_data),
+        data_size,
+        dev_neighbor_map,
+        RAW_PTR(dev_n_neighbor_map),
+        dev_hash_map,
+        thrust::raw_pointer_cast(dev_n_hash_map.data()),
+        n_grids,
+        pitch_neighbor,
+        pitch_hash);
 
     CUDA_CALL(cudaFree(dev_hash_map));
-    CUDA_CALL(cudaFree(dev_n_hash_map));
   }
 
   auto dt_end = std::chrono::system_clock::now();
 
-  auto start = std::chrono::system_clock::now();
   // Jacobi iteration
+  auto start = std::chrono::system_clock::now();
   int iter_cnt = iter;
   while (iter_cnt--) {
-    fill_lambda<<<num_blocks, threads_per_block>>>(dev_data,
-                                                   dev_neighbor_map,
-                                                   pitch,
-                                                   dev_n_neighbor_map,
-                                                   _lambda,
-                                                   c_i,
+    fill_lambda<<<num_blocks, threads_per_block>>>(RAW_PTR(dev_data),
                                                    data_size,
+                                                   dev_neighbor_map,
+                                                   RAW_PTR(dev_n_neighbor_map),
+                                                   pitch_neighbor,
+                                                   RAW_PTR(c_i),
+                                                   RAW_PTR(lambda),
                                                    rho_0,
-                                                   radius,
                                                    mass);
-    apply_motion<<<num_blocks, threads_per_block>>>(dev_data,
-                                                    dev_neighbor_map,
-                                                    pitch,
-                                                    dev_n_neighbor_map,
-                                                    _lambda,
-                                                    c_i,
+    apply_motion<<<num_blocks, threads_per_block>>>(RAW_PTR(dev_data),
                                                     data_size,
-                                                    rho_0,
-                                                    radius);
+                                                    RAW_PTR(dev_n_neighbor_map),
+                                                    dev_neighbor_map,
+                                                    RAW_PTR(lambda),
+                                                    RAW_PTR(c_i),
+                                                    pitch_neighbor,
+                                                    rho_0);
   }
 
-  float c_i_sum = 0;
   // update all velocity
   update_velocity<<<num_blocks, threads_per_block>>>(
-      dev_data, pre_data, delta_t, data_size, border);
+      RAW_PTR(dev_data), RAW_PTR(pre_data), data_size, delta_t);
 
   // Copy device vector back to host
   CUDA_CALL(cudaMemcpy(&data[0],
-                       dev_data,
+                       RAW_PTR(dev_data),
                        sizeof(SPHParticle) * data_size,
                        cudaMemcpyDeviceToHost));
 
   gui_ptr->set_particles(data);
 
-  CUDA_CALL(cudaFree(_lambda));
-  CUDA_CALL(cudaFree(c_i));
-  CUDA_CALL(cudaFree(pre_data));
-  CUDA_CALL(cudaFree(dev_data));
   CUDA_CALL(cudaFree(dev_neighbor_map));
-  CUDA_CALL(cudaFree(dev_n_neighbor_map));
 
   // Logging part
   if ((--interval) != 0)
@@ -164,7 +148,16 @@ void PBDSolver::callback()
   std::chrono::duration<float> diff = end - start;
   std::cout << "calculation complete: " << diff.count() * 1000 << "ms"
             << std::endl;
-  std::cout << "avg c_i: <" << c_i_sum / data_size << "> | n_neighbor: <null>"
+  std::cout << "avg c_i: <"
+            << thrust::reduce(
+                   c_i.begin(), c_i.end(), 0.0f, thrust::plus<float>()) /
+                   static_cast<double>(data_size)
+            << "> | n_neighbor: "
+            << thrust::reduce(dev_n_neighbor_map.begin(),
+                              dev_n_neighbor_map.end(),
+                              0,
+                              thrust::plus<int>()) /
+                   data_size
             << std::endl;
   std::cout << std::endl;
 }
@@ -179,12 +172,19 @@ hvector<SPHParticle> &PBDSolver::get_data()
   return data;
 }
 
-__device__ void PBDSolver::constraint_to_border(SPHParticle &p, float _border)
+__device__ void PBDSolver::constraint_to_border(SPHParticle &p)
 {
-  p.pos += epsilon * vec3(dev_rand(), dev_rand(), dev_rand());
-  p.pos.x = glm::clamp(p.pos.x, -_border, _border);
-  p.pos.y = glm::clamp(p.pos.y, -_border, _border);
-  p.pos.z = glm::clamp(p.pos.z, -_border, _border);
+  static unsigned int a = 0;
+  auto _rd = RD_GLOBAL(-1.0f, 1.0f);
+  atomicAdd(&a, 1);
+  p.pos += epsilon * vec3(_rd(a), 0.0f, 0.0f);
+  atomicAdd(&a, 1);
+  p.pos += epsilon * vec3(0.0f, _rd(a), 0.0f);
+  atomicAdd(&a, 1);
+  p.pos += epsilon * vec3(0.0f, 0.0f, _rd(a));
+  p.pos.x = glm::clamp(p.pos.x, -border, border);
+  p.pos.y = glm::clamp(p.pos.y, -border, border);
+  p.pos.z = glm::clamp(p.pos.z, -border, border);
 }
 
 // On both platform
@@ -222,53 +222,50 @@ float PBDSolver::compute_s_corr(const SPHParticle &p_i,
 
 __global__ void update_velocity(SPHParticle *dev_data,
                                 SPHParticle *pre_data,
-                                float delta_t,
                                 int data_size,
-                                float _border)
+                                float delta_t)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
   if (i < data_size) {
     auto &p = dev_data[i];
-    PBDSolver::constraint_to_border(p, _border);
+    PBDSolver::constraint_to_border(p);
     p.v = 1.0f / delta_t * (p.pos - pre_data[i].pos);
   }
 }
 
 __global__ void apply_force(SPHParticle *dev_data,
-                            float delta_t,
-                            vec3 ext_f,
                             int data_size,
-                            float _border)
+                            vec3 ext_f,
+                            float delta_t)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
   if (i < data_size) {
     dev_data[i].v += delta_t * ext_f;
     dev_data[i].pos += delta_t * dev_data[i].v;
-    PBDSolver::constraint_to_border(dev_data[i], _border);
+    PBDSolver::constraint_to_border(dev_data[i]);
   }
 }
 
 __global__ void fill_lambda(SPHParticle *dev_data,
-                            int *dev_neighbor_map,
-                            size_t pitch,
-                            const int *dev_n_neighbor_map,
-                            float *_lambda,
-                            float *c_i,
                             size_t data_size,
+                            int *dev_neighbor_map,
+                            const int *dev_n_neighbor_map,
+                            size_t pitch_neighbor,
+                            float *c_i,
+                            float *lambda,
                             float rho_0,
-                            float _radius,
                             float mass)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
   if (i < data_size) {
     // --- calculate rho ---
     float rho = 0;
-    int *dev_neighbor_vec = (int *)((char *)dev_neighbor_map + i * pitch);
+    int *dev_neighbor_vec = (int *)((char *)dev_neighbor_map +
+                                    i * pitch_neighbor);
     for (int index = 0; index < dev_n_neighbor_map[i]; ++index) {
       int j = dev_neighbor_vec[index];
-      rho += mass *
-             PBDSolver::poly6(glm::length(dev_data[i].pos - dev_data[j].pos),
-                              _radius);
+      rho += mass * PBDSolver::poly6(
+                        glm::length(dev_data[i].pos - dev_data[j].pos), radius);
     }
 
     c_i[i] = glm::max(rho / rho_0 - 1, 0.0f);
@@ -282,30 +279,29 @@ __global__ void fill_lambda(SPHParticle *dev_data,
         for (int k = 0; k < dev_n_neighbor_map[i]; ++k) {
           const int neighbor_index = dev_neighbor_vec[k];
           grad_c += PBDSolver::grad_spiky(
-              dev_data[i].pos - dev_data[neighbor_index].pos, _radius);
+              dev_data[i].pos - dev_data[neighbor_index].pos, radius);
         }
       } else {
         grad_c = -PBDSolver::grad_spiky(dev_data[i].pos - dev_data[j].pos,
-                                        _radius);
+                                        radius);
       }
 
       grad_c = 1.0f / rho_0 * grad_c;
       _denom += fast_pow(glm::length(grad_c), 2.0f);
     }
 
-    _lambda[i] = -c_i[i] / (_denom + denom_epsilon);
+    lambda[i] = -c_i[i] / (_denom + denom_epsilon);
   }
 }
 
 __global__ void apply_motion(SPHParticle *dev_data,
-                             const int *dev_neighbor_map,
-                             size_t pitch,
-                             const int *dev_n_neighbor_map,
-                             const float *_lambda,
-                             const float *c_i,
                              size_t data_size,
-                             float rho_0,
-                             float _radius)
+                             const int *dev_n_neighbor_map,
+                             const int *dev_neighbor_map,
+                             const float *lambda,
+                             const float *c_i,
+                             size_t pitch,
+                             float rho_0)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -314,11 +310,10 @@ __global__ void apply_motion(SPHParticle *dev_data,
     int *dev_neighbor_vec = (int *)((char *)dev_neighbor_map + i * pitch);
     for (int index = 0; index < dev_n_neighbor_map[i]; ++index) {
       int j = dev_neighbor_vec[index];
-      assert(j != -1);
       delta_p_i +=
-          (_lambda[i] + _lambda[j] +
-           PBDSolver::compute_s_corr(dev_data[i], dev_data[j], _radius)) *
-          PBDSolver::grad_spiky(dev_data[i].pos - dev_data[j].pos, _radius);
+          (lambda[i] + lambda[j] +
+           PBDSolver::compute_s_corr(dev_data[i], dev_data[j], radius)) *
+          PBDSolver::grad_spiky(dev_data[i].pos - dev_data[j].pos, radius);
     }
 
     delta_p_i *= 1.0f / rho_0;
@@ -333,19 +328,22 @@ __global__ void build_hash_map(SPHParticle *dev_data,
                                int *dev_hash_map,
                                int *dev_n_hash_map,
                                int n_grids,
-                               size_t pitch_hash)
+                               size_t pitch_hash,
+                               int *hash_map_mutex)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
   if (i < data_size) {
-    const int hash_map_index = PBDSolver::hash(dev_data[i].pos, n_grids);
+    int hash_map_index = PBDSolver::hash(dev_data[i].pos, n_grids);
     int *dev_hash_map_item = (int *)((char *)dev_hash_map +
                                      pitch_hash * hash_map_index);
+    while (atomicCAS(&hash_map_mutex[hash_map_index], 0, 1) != 0)
+      ;
     if (dev_n_hash_map[hash_map_index] < PBDSolver::MAX_NEIGHBOR_SIZE) {
-      atomicAdd(&dev_n_hash_map[hash_map_index], 1);
-      dev_hash_map_item[dev_n_hash_map[hash_map_index]] = (int)i;
-    } else {
-      // assert(false);
+      atomicExch((int *)&(dev_hash_map_item[dev_n_hash_map[hash_map_index]]),
+                 (int)i);
+      atomicAdd((int *)&(dev_n_hash_map[hash_map_index]), 1);
     }
+    atomicExch(&hash_map_mutex[hash_map_index], 0);
   }
 }
 
@@ -356,20 +354,21 @@ __global__ void build_neighbor_map(SPHParticle *dev_data,
                                    const int *dev_hash_map,
                                    const int *dev_n_hash_map,
                                    int n_grids,
-                                   size_t pitch,
+                                   size_t pitch_neighbor,
                                    size_t pitch_hash)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
   if (i < data_size) {
     const auto &center = dev_data[i];
     const auto grid_index = PBDSolver::get_grid_index(center.pos);
-    int *dev_neighbor_map_item = (int *)((char *)dev_neighbor_map + pitch * i);
+    int *dev_neighbor_map_item = (int *)((char *)dev_neighbor_map +
+                                         pitch_neighbor * i);
 
     for (int u = grid_index.x - 1; u <= grid_index.x + 1; ++u) {
       for (int v = grid_index.y - 1; v <= grid_index.y + 1; ++v) {
         for (int w = grid_index.z - 1; w <= grid_index.z + 1; ++w) {
-          if (u < 0 || v < 0 || w < 0 || u >= n_grids || v >= n_grids ||
-              w >= n_grids)
+          if (u < 0 || v < 0 || w < 0 || u > n_grids || v > n_grids ||
+              w > n_grids)
             continue;
 
           const int hash_map_index = PBDSolver::hash_from_grid(
@@ -378,10 +377,11 @@ __global__ void build_neighbor_map(SPHParticle *dev_data,
                                            pitch_hash * hash_map_index);
           for (int k = 0; k < dev_n_hash_map[hash_map_index]; ++k) {
             int j = dev_hash_map_item[k];
-            if (center.dist(dev_data[j]) <= radius &&
+            if (center.dist2(dev_data[j]) <= radius2 &&
                 dev_n_neighbor_map[i] < PBDSolver::MAX_NEIGHBOR_SIZE) {
-              atomicAdd(&dev_n_neighbor_map[i], 1);
-              dev_neighbor_map_item[dev_n_neighbor_map[i]] = j;
+              atomicExch((int *)&(dev_neighbor_map_item[dev_n_neighbor_map[i]]),
+                         j);
+              atomicAdd(&(dev_n_neighbor_map[i]), 1);
             }
           }
         }

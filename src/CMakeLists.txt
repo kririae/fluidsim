@@ -3,7 +3,7 @@ set(shader_files p_vert.glsl p_frag.glsl m_vert.glsl m_frag.glsl)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${shader_files} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CUDA_FLAGS}")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g --expt-extended-lambda -use_fast_math")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g --expt-extended-lambda")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pedantic -pedantic-errors -Wextra -Wshadow -Wpointer-arith -Wformat=2 -Wall")
 
 # Optimize options
