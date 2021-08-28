@@ -19,13 +19,13 @@
 
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
-//  2020-01-17: Inputs: Disable error callback while assigning mouse cursors
+//  2020-01-17: Inputs: Disable error substep while assigning mouse cursors
 //  because some X11 setup don't have them and it generates errors. 2019-12-05:
 //  Inputs: Added support for new mouse cursors added in GLFW 3.4+ (resizing
 //  cursors, not allowed cursor). 2019-10-18: Misc: Previously installed user
 //  callbacks are now restored on shutdown. 2019-07-21: Inputs: Added mapping
 //  for ImGuiKey_KeyPadEnter. 2019-05-11: Inputs: Don't filter value from
-//  character callback before calling AddInputCharacter(). 2019-03-12: Misc:
+//  character substep before calling AddInputCharacter(). 2019-03-12: Misc:
 //  Preserve DisplayFramebufferScale when main window is minimized. 2018-11-30:
 //  Misc: Setting up io.BackendPlatformName so it can be displayed in the About
 //  Window. 2018-11-07: Inputs: When installing our GLFW callbacks, we save

@@ -12,7 +12,7 @@ class Solver {
   Solver &operator=(const Solver &solver) = delete;
   virtual ~Solver() = default;
 
-  virtual void callback();
+  virtual void substep();
 };
 
 #endif  // PBF3D_SRC_SOLVER_HPP_

@@ -21,15 +21,23 @@ PBDSolver::PBDSolver(float _radius)
   n_grids = int(glm::ceil(2 * border / radius) + 1);
 }
 
-void PBDSolver::set_gui(RTGUI_particles *gui) noexcept
+// void PBDSolver::set_gui(RTGUI_particles *gui) noexcept
+// {
+//   gui_ptr = gui;
+// }
+
+void PBDSolver::update_gui(RTGUI_particles *gui_ptr) noexcept
 {
-  gui_ptr = gui;
+#pragma unroll
+  for (int i = 0; i < n_substeps; ++i)
+    this->substep();
+  gui_ptr->set_particles(data);
 }
 
-void PBDSolver::callback()
+void PBDSolver::substep()
 {
-  assert(gui_ptr != nullptr);
-
+  // data -> [__CUDA_OPERATIONS__] -> data (at all)
+  // For compatibility consideration, cannot use modern CPP
   static int interval = 60;
 
   // for data_size linear parallel
@@ -40,6 +48,7 @@ void PBDSolver::callback()
                          threads_per_block;
 
   int *dev_neighbor_map;
+  size_t pitch_neighbor{0};
   dvector<float> lambda(data_size), c_i(data_size);
   dvector<SPHParticle> pre_data(data.begin(), data.end());
   dvector<SPHParticle> dev_data = pre_data;
@@ -70,8 +79,6 @@ void PBDSolver::callback()
                               MAX_NEIGHBOR_SIZE * sizeof(int),
                               data_size));
 
-    // build_hash_map<<<1, 1>>>(
-    //     RAW_PTR(dev_data),
     build_hash_map<<<num_blocks, threads_per_block>>>(RAW_PTR(dev_data),
                                                       data_size,
                                                       dev_hash_map,
@@ -80,7 +87,6 @@ void PBDSolver::callback()
                                                       pitch_hash,
                                                       RAW_PTR(hash_map_mutex));
 
-    // build_neighbor_map<<<1, 1>>>(
     build_neighbor_map<<<num_blocks, threads_per_block>>>(
         RAW_PTR(dev_data),
         data_size,
@@ -130,8 +136,6 @@ void PBDSolver::callback()
                        sizeof(SPHParticle) * data_size,
                        cudaMemcpyDeviceToHost));
 
-  gui_ptr->set_particles(data);
-
   CUDA_CALL(cudaFree(dev_neighbor_map));
 
   // Logging part
@@ -139,7 +143,7 @@ void PBDSolver::callback()
     return;
 
   interval = 60;
-  std::cout << "--- callback start (interval: 60) ---" << std::endl;
+  std::cout << "--- substep start (interval: 60) ---" << std::endl;
   std::cout << "NParticles: " << data_size << std::endl;
   std::chrono::duration<float> dt_diff = dt_end - dt_start;
   std::cout << "data_structure building complete: " << dt_diff.count() * 1000
@@ -148,11 +152,11 @@ void PBDSolver::callback()
   std::chrono::duration<float> diff = end - start;
   std::cout << "calculation complete: " << diff.count() * 1000 << "ms"
             << std::endl;
-  std::cout << "avg c_i: <"
+  std::cout << "avg c_i: "
             << thrust::reduce(
                    c_i.begin(), c_i.end(), 0.0f, thrust::plus<float>()) /
                    static_cast<double>(data_size)
-            << "> | n_neighbor: "
+            << " | n_neighbor: "
             << thrust::reduce(dev_n_neighbor_map.begin(),
                               dev_n_neighbor_map.end(),
                               0,
@@ -167,21 +171,22 @@ void PBDSolver::add_particle(const SPHParticle &p)
   data.push_back(p);
 }
 
-hvector<SPHParticle> &PBDSolver::get_data()
+const hvector<SPHParticle> &PBDSolver::get_data()
 {
   return data;
 }
 
 __device__ void PBDSolver::constraint_to_border(SPHParticle &p)
 {
-  static unsigned int a = 0;
-  auto _rd = RD_GLOBAL(-1.0f, 1.0f);
-  atomicAdd(&a, 1);
-  p.pos += epsilon * vec3(_rd(a), 0.0f, 0.0f);
-  atomicAdd(&a, 1);
-  p.pos += epsilon * vec3(0.0f, _rd(a), 0.0f);
-  atomicAdd(&a, 1);
-  p.pos += epsilon * vec3(0.0f, 0.0f, _rd(a));
+  // TODO: the same offset on two dimensions
+  // static unsigned int a = 0;
+  // auto _rd = RD_GLOBAL(-1.0f, 1.0f);
+  // atomicAdd(&a, 1);
+  // p.pos += epsilon * vec3(_rd(a), 0.0f, 0.0f);
+  // atomicAdd(&a, 1);
+  // p.pos += epsilon * vec3(0.0f, _rd(a), 0.0f);
+  // atomicAdd(&a, 1);
+  // p.pos += epsilon * vec3(0.0f, 0.0f, _rd(a));
   p.pos.x = glm::clamp(p.pos.x, -border, border);
   p.pos.y = glm::clamp(p.pos.y, -border, border);
   p.pos.z = glm::clamp(p.pos.z, -border, border);
@@ -304,7 +309,6 @@ __global__ void apply_motion(SPHParticle *dev_data,
                              float rho_0)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
-
   if (i < data_size) {
     vec3 delta_p_i(0.0f);
     int *dev_neighbor_vec = (int *)((char *)dev_neighbor_map + i * pitch);
@@ -379,6 +383,7 @@ __global__ void build_neighbor_map(SPHParticle *dev_data,
             int j = dev_hash_map_item[k];
             if (center.dist2(dev_data[j]) <= radius2 &&
                 dev_n_neighbor_map[i] < PBDSolver::MAX_NEIGHBOR_SIZE) {
+              // not required
               atomicExch((int *)&(dev_neighbor_map_item[dev_n_neighbor_map[i]]),
                          j);
               atomicAdd(&(dev_n_neighbor_map[i]), 1);

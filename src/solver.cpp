@@ -4,7 +4,7 @@
 
 #include "solver.hpp"
 
-void Solver::callback()
+void Solver::substep()
 {
   // do nothing
 }

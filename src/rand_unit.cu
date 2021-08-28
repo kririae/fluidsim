@@ -10,7 +10,7 @@ __device__ RD_GLOBAL::RD_GLOBAL(float _l, float _r) : rand_l(_l), rand_r(_r)
 {
 }
 
-__device__ float RD_GLOBAL::operator()(unsigned int n)
+__device__ float RD_GLOBAL::operator()(unsigned int n) const
 {
   thrust::default_random_engine rng;
   thrust::uniform_real_distribution<float> dist(rand_l, rand_r);

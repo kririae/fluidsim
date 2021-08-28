@@ -43,14 +43,16 @@ class RTGUI_particles : public GUI {
   hvector<SPHParticle> p{};
   // std::shared_ptr<hvector<SPHParticle>> p{};
 
-  unsigned int VAO{}, VBO{};
+  unsigned int VAO{}, VBO{}, EBO{};
   std::unique_ptr<Shader> p_shader{}, m_shader{};
   std::shared_ptr<hvector<vec3>> mesh;
+  std::shared_ptr<hvector<uint>> indicies;
   PBDSolver *solver{};
   bool rotate = false;
   bool remesh = false;
   float meta_radius = 1.0f;  //  metaball_radius
-  float grid_size = 0.2f;
+                             // float isovalue = 0.0;
+                             // float grid_size = 0.2f;
 
  private:
   void render_particles() const;

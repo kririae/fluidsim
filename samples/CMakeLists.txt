@@ -7,4 +7,3 @@ macro(add_sample sample_name)
 endmacro(add_sample)
 
 add_sample(random)
-add_sample(random_gravity)

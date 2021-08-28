@@ -14,9 +14,10 @@ int main()
   // random generator initialization
   RTGUI_particles gui(WIDTH, HEIGHT);
   PBDSolver pbd(radius);
-  pbd.set_gui(&gui);
   gui.set_solver(&pbd);
-  std::function<void()> callback = [obj = &pbd] { obj->callback(); };
+  std::function<void()> callback = [obj = &pbd, gui = &gui] {
+    obj->update_gui(gui);
+  };
 
   constexpr int _range = static_cast<int>(border / 1.5f);
   constexpr float coeff = 0.6f;

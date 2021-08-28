@@ -7,11 +7,12 @@
 #include "common.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "mesher.hpp"
 #include "particle.hpp"
 #include "pbd.hpp"
+#include <chrono>
 #include <iostream>
 #include <memory>
-#include <sstream>
 
 GUI::GUI(int WIDTH, int HEIGHT) : width(WIDTH), height(HEIGHT)
 {
@@ -86,24 +87,26 @@ void RTGUI_particles::set_particles(const hvector<SPHParticle> &_p)
 {
   p = _p;
 
-  if (VAO != 0) {
+  if (VAO != 0)
     glDeleteVertexArrays(1, &VAO);
-  }
 
-  if (VBO != 0) {
+  if (VBO != 0)
     glDeleteBuffers(1, &VBO);
-  }
+
+  if (EBO != 0)
+    glDeleteBuffers(1, &EBO);
 
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
+  glGenBuffers(1, &EBO);
 
   glBindVertexArray(VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
   if (remesh) {
-    // TODO: construct remesh
-    if (mesh == nullptr)
-      construct_mesh();
+
+    // if (mesh == nullptr)
+    construct_mesh();
 
     glBufferData(GL_ARRAY_BUFFER,
                  mesh->size() * sizeof(vec3),
@@ -119,8 +122,14 @@ void RTGUI_particles::set_particles(const hvector<SPHParticle> &_p)
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(
         2, 2, GL_FLOAT, GL_FALSE, sizeof(vec3) * 3, (void *)(2 * sizeof(vec3)));
-  }
-  else {
+
+    // Initialize indicies(EBO)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 indicies->size() * sizeof(uint),
+                 indicies->data(),
+                 GL_STREAM_DRAW);
+  } else {
     hvector<float> points;
     points.reserve(p.size() * 4);
     for (auto &i : p) {
@@ -149,6 +158,7 @@ void RTGUI_particles::set_particles(const hvector<SPHParticle> &_p)
 
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void RTGUI_particles::set_mesh(bool _remesh)
@@ -158,7 +168,7 @@ void RTGUI_particles::set_mesh(bool _remesh)
 
 void RTGUI_particles::main_loop(const std::function<void()> &callback)
 {
-  // Call set_particles in callback function and return the newly
+  // Call set_particles in substep function and return the newly
   // generated particles
 
   std::cout << "entered main_loop" << std::endl;
@@ -181,8 +191,10 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
     // ImGui widgets
     {
       // ImGui::SetNextWindowSize(ImVec2(360, 150), ImGuiCond_Always);
+      ImGuiIO &io = ImGui::GetIO();
       ImGui::Begin(
           "PBD Controller", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+      ImGui::Text("Framerate: %.1f", io.Framerate);
       ImGui::SliderFloat("rho_0", &(solver->rho_0), 5.0f, 20.0f);
       ImGui::SliderInt("iter", &(solver->iter), 1, 10);
       ImGui::SliderFloat("ext_f.x", &(solver->ext_f.x), -10.0f, 10.0f);
@@ -191,14 +203,6 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
       ImGui::SliderFloat("meta _radius", &meta_radius, 0.5f, 5.0f);
       ImGui::Checkbox("rotate", &rotate);
       ImGui::Checkbox("remesh", &remesh);
-      ImGui::End();
-    }
-
-    {
-      ImGuiIO &io = ImGui::GetIO();
-      ImGui::Begin(
-          "Program Information", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-      ImGui::Text("Framerate: %.1f", io.Framerate);
       ImGui::End();
     }
 
@@ -222,6 +226,7 @@ void RTGUI_particles::render_particles() const
 
   auto model = glm::translate(glm::mat4(1.0f), vec3(0));
   model = glm::rotate(model, rotate_y, vec3(0.0f, 1.0f, 0.0f));
+  model = glm::scale(model, vec3(1 / border));
 
   auto camera_pos = vec3(0.0f, 3.0f, 6.0f);
   auto camera_center = vec3(0.0f);
@@ -236,10 +241,10 @@ void RTGUI_particles::render_particles() const
 
   assert(m_shader != nullptr);
   if (remesh) {
-    // model = glm::scale(model, vec3(border));
-
     assert(mesh != nullptr);
+    assert(indicies != nullptr);
 
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     m_shader->use();
     m_shader->set_mat4("model", model);
     m_shader->set_mat4("view", view);
@@ -248,10 +253,9 @@ void RTGUI_particles::render_particles() const
     m_shader->set_vec3("light_color", glm::vec3(1.0f));
     m_shader->set_vec3("light_pos", camera_pos);
     m_shader->set_vec3("view_pos", camera_pos);
-    glDrawArrays(GL_TRIANGLES, 0, mesh->size() / 3);
-  }
-  else {
-    model = glm::scale(model, vec3(1 / border));
+    // glDrawArrays(GL_TRIANGLES, 0, mesh->size() / 3);
+    glDrawElements(GL_TRIANGLES, indicies->size(), GL_UNSIGNED_INT, (void *)0);
+  } else {
     p_shader->use();
     p_shader->set_mat4("model", model);
     p_shader->set_mat4("view", view);
@@ -307,31 +311,63 @@ void RTGUI_particles::construct_mesh()
   // Construct mesh from p
 
   // OBJ_Loader version
-  objl::Loader loader;
-  bool success = loader.LoadFile("../models/bunny/bunny.obj");
-  if (!success) {
-    std::cerr << "obj file load failed" << std::endl;
-    glfwTerminate();
-  }
+  // objl::Loader loader;
+  // bool success = loader.LoadFile("../models/bunny/bunny.obj");
+  // if (!success) {
+  //   std::cerr << "obj file load failed" << std::endl;
+  //   glfwTerminate();
+  // }
+  //
+  // std::cout << "obj mesh size: " << loader.LoadedMeshes.size() << std::endl;
+  // mesh = std::make_shared<hvector<vec3>>();
+  // indicies = std::make_shared<hvector<uint>>(loader.LoadedMeshes[0].Indices);
+  //
+  // for (auto &i : loader.LoadedMeshes[0].Vertices) {
+  //   mesh->emplace_back(i.Position.X, i.Position.Y, i.Position.Z);
+  //   mesh->emplace_back(i.Normal.X, i.Normal.Y, i.Normal.Z);
+  //   mesh->emplace_back(i.TextureCoordinate.X, i.TextureCoordinate.Y, 0.0f);
+  // }
 
-  std::cout << "obj mesh size: " << loader.LoadedMeshes.size() << std::endl;
+  // -------------------------------------
+  // OpenVDB version, openvdb-style coding :)
+  // Construct mesh through `data`
+
+  std::cout << "--- meshing start ---" << std::endl;
+  auto ms_start = std::chrono::system_clock::now();
+  std::vector<openvdb::Vec3s> points;
+  std::vector<openvdb::Vec3I> triangles;
+  std::vector<openvdb::Vec4I> quads;
+  particleToMesh(p, points, triangles, quads);
+  std::cout << "n points: " << points.size() << std::endl;
+  std::cout << "n triangles: " << triangles.size() << std::endl;
+  std::cout << "n quads: " << quads.size() << std::endl;
+  indicies = std::make_shared<hvector<uint>>();
   mesh = std::make_shared<hvector<vec3>>();
-  for (auto &i : loader.LoadedMeshes[0].Vertices) {
-    mesh->emplace_back(i.Position.X, i.Position.Y, i.Position.Z);
-    mesh->emplace_back(i.Normal.X, i.Normal.Y, i.Normal.Z);
-    mesh->emplace_back(i.TextureCoordinate.X, i.TextureCoordinate.Y, 0.0f);
+
+  for (auto &i : triangles) {
+    indicies->push_back(i.x());
+    indicies->push_back(i.y());
+    indicies->push_back(i.z());
   }
 
-  auto calc_meta = [](const vec3 &p, const vec3 &p_0) -> float {
-    return 1 / glm::length(p - p_0);  // TODO: to be expanded to avoid division
-  };
+  for (auto &i : quads) {
+    indicies->push_back(i.x());
+    indicies->push_back(i.y());
+    indicies->push_back(i.z());
 
-  // divide scope in [border] into 3d grids
-  for (float x = -border; x <= border; x += grid_size) {
-    for (float y = -border; y <= border; y += grid_size) {
-      for (float z = -border; z <= border; z += grid_size) {
-        ;  // TODO
-      }
-    }
+    indicies->push_back(i.x());
+    indicies->push_back(i.z());
+    indicies->push_back(i.w());
   }
+
+  for (auto &i : points) {
+    mesh->emplace_back(i.x(), i.y(), i.z());
+    mesh->emplace_back(0, 1, 0);
+    mesh->emplace_back(0, 0, 0);
+  }
+
+  auto ms_end = std::chrono::system_clock::now();
+  std::chrono::duration<float> ms_diff = ms_end - ms_start;
+  std::cout << "meshing complete: " << ms_diff.count() * 1000 << " ms"
+            << std::endl;
 }

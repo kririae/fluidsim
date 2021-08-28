@@ -32,13 +32,14 @@ class Random {
 TEST(COMPACT_HASH, algorithm)
 {
   // radius defined in `common.hpp`
+  // Those API do not expose
 #define RAW_PTR(o) (thrust::raw_pointer_cast((o).data()))
 
   PBDSolver pbd(radius);
   for (int i = 0; i < NParticles; ++i)
     pbd.add_particle(
         SPHParticle(rd_global.rand(), rd_global.rand(), rd_global.rand()));
-  pbd.callback();
+  pbd.substep();
   const int data_size = (int)pbd.data.size();
 
   dvector<int> dev_n_neighbor_map(pbd.dev_n_neighbor_map,

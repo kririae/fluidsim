@@ -12,7 +12,7 @@ struct RD_GLOBAL {
   float rand_l, rand_r;
 
   __attribute__((device)) RD_GLOBAL(float _l, float _r);
-  __attribute__((device)) float operator()(unsigned int n);
+  __attribute__((device)) float operator()(unsigned int n) const;
 };
 
 #endif  // PBF3D_SRC_RAND_UNIT_CUH_

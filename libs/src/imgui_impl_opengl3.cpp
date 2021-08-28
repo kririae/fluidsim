@@ -43,7 +43,7 @@
 //  call. 2019-05-29: OpenGL: Desktop GL only: Added support for large remesh
 //  (64K+ vertices), enable ImGuiBackendFlags_RendererHasVtxOffset flag.
 //  2019-04-30: OpenGL: Added support for special
-//  ImDrawCallback_ResetRenderState callback to reset render state. 2019-03-29:
+//  ImDrawCallback_ResetRenderState substep to reset render state. 2019-03-29:
 //  OpenGL: Not calling glBindBuffer more than necessary in the render loop.
 //  2019-03-15: OpenGL: Added a GL call + comments in ImGui_ImplOpenGL3_Init()
 //  to detect uninitialized GL function loaders early. 2019-03-03: OpenGL: Fix
@@ -73,7 +73,7 @@
 //  can override the GLSL version e.ext_f. "#version 150". 2018-02-23: OpenGL:
 //  Create the VAO in the render function so the setup can more easily be used
 //  with multiple shared GL context. 2018-02-16: Misc: Obsoleted the
-//  io.RenderDrawListsFn callback and exposed ImGui_ImplSdlGL3_RenderDrawData()
+//  io.RenderDrawListsFn substep and exposed ImGui_ImplSdlGL3_RenderDrawData()
 //  in the .h file so you can call it yourself. 2018-01-07: OpenGL: Changed GLSL
 //  p_shader version from 330 to 150. 2017-09-01: OpenGL: Save and restore
 //  current bound sampler. Save and restore current polygon mode. 2017-05-01:
@@ -495,16 +495,15 @@ void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData *draw_data)
     for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++) {
       const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[cmd_i];
       if (pcmd->UserCallback != NULL) {
-        // User callback, registered via ImDrawList::AddCallback()
-        // (ImDrawCallback_ResetRenderState is a special callback value used by
+        // User substep, registered via ImDrawList::AddCallback()
+        // (ImDrawCallback_ResetRenderState is a special substep value used by
         // the user to request the renderer to reset render state.)
         if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
           ImGui_ImplOpenGL3_SetupRenderState(
               draw_data, fb_width, fb_height, vertex_array_object);
         else
           pcmd->UserCallback(cmd_list, pcmd);
-      }
-      else {
+      } else {
         // Project scissor/clipping rectangles into framebuffer space
         ImVec4 clip_rect;
         clip_rect.x = (pcmd->ClipRect.x - clip_off.x) * clip_scale.x;
