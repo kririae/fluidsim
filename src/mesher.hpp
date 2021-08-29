@@ -7,7 +7,6 @@
 
 #include "common.hpp"
 #include <openvdb/Types.h>
-#include <openvdb/openvdb.h>
 
 class SPHParticle;
 

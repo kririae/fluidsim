@@ -5,6 +5,7 @@
 #include "mesher.hpp"
 #include "particle.hpp"
 #include <openvdb/openvdb.h>
+#include <openvdb/tools/LevelSetFilter.h>
 #include <openvdb/tools/ParticlesToLevelSet.h>
 #include <openvdb/tools/VolumeToMesh.h>
 
@@ -28,7 +29,7 @@ void ParticleList::getPosRad(size_t n,
                              openvdb::Real &_radius) const
 {
   getPos(n, xyz);
-  _radius = ::radius / 2.0f;
+  _radius = 0.3 * ::radius;
 }
 
 void ParticleList::getAtt(size_t n, openvdb::Index32 &att) const
@@ -53,5 +54,9 @@ void particleToMesh(const std::vector<SPHParticle> &data,
   raster.rasterizeSpheres(list);
   raster.finalize(true);
 
-  openvdb::tools::volumeToMesh(*grid, points, triangles, quads, 0.0, 0.8);
+  openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*grid);
+  // filter.gaussian();
+  // filter.meanCurvature();
+
+  openvdb::tools::volumeToMesh(*grid, points, triangles, quads, 0.0, 0.2);
 }

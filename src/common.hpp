@@ -14,11 +14,11 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <random>
 
+// TO BE RECONSTRUCT into `class`
 constexpr float border = 20.0f;
-constexpr float epsilon = 3e-5;
-constexpr float radius = 1.8f;
+constexpr float epsilon = 6e-5;
+constexpr float radius = 2.0f;
 constexpr float radius2 = radius * radius;
-
 // other pbf parameters are defined in pbd.cpp
 
 // For consideration of flexibility

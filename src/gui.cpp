@@ -104,7 +104,6 @@ void RTGUI_particles::set_particles(const hvector<SPHParticle> &_p)
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
   if (remesh) {
-
     // if (mesh == nullptr)
     construct_mesh();
 
@@ -161,11 +160,6 @@ void RTGUI_particles::set_particles(const hvector<SPHParticle> &_p)
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void RTGUI_particles::set_mesh(bool _remesh)
-{
-  remesh = _remesh;
-}
-
 void RTGUI_particles::main_loop(const std::function<void()> &callback)
 {
   // Call set_particles in substep function and return the newly
@@ -173,6 +167,8 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
 
   std::cout << "entered main_loop" << std::endl;
   while (!glfwWindowShouldClose(window)) {
+    ++frame;
+
     // Do something with particles
     glfwPollEvents();
     glClearColor(0.16, 0.17, 0.2, 1);  // one dark
@@ -195,14 +191,15 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
       ImGui::Begin(
           "PBD Controller", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
       ImGui::Text("Framerate: %.1f", io.Framerate);
-      ImGui::SliderFloat("rho_0", &(solver->rho_0), 5.0f, 20.0f);
+      ImGui::SliderFloat("rho_0", &(solver->rho_0), 5.0f, 40.0f);
       ImGui::SliderInt("iter", &(solver->iter), 1, 10);
       ImGui::SliderFloat("ext_f.x", &(solver->ext_f.x), -10.0f, 10.0f);
       ImGui::SliderFloat("ext_f.y", &(solver->ext_f.y), -10.0f, 10.0f);
       ImGui::SliderFloat("ext_f.z", &(solver->ext_f.z), -10.0f, 10.0f);
-      ImGui::SliderFloat("meta _radius", &meta_radius, 0.5f, 5.0f);
+      ImGui::SliderFloat("meta_radius", &meta_radius, 0.5f, 5.0f);
       ImGui::Checkbox("rotate", &rotate);
       ImGui::Checkbox("remesh", &remesh);
+      exportMesh |= ImGui::Button("Export Current");
       ImGui::End();
     }
 
@@ -350,6 +347,7 @@ void RTGUI_particles::construct_mesh()
     indicies->push_back(i.z());
   }
 
+  // TODO: calculate the convex hull
   for (auto &i : quads) {
     indicies->push_back(i.x());
     indicies->push_back(i.y());
@@ -366,8 +364,32 @@ void RTGUI_particles::construct_mesh()
     mesh->emplace_back(0, 0, 0);
   }
 
+  if (exportMesh) {
+    export_mesh("pbf_sim_");
+    // exportMesh = false;
+  }
+
   auto ms_end = std::chrono::system_clock::now();
   std::chrono::duration<float> ms_diff = ms_end - ms_start;
   std::cout << "meshing complete: " << ms_diff.count() * 1000 << " ms"
             << std::endl;
+  std::cout << std::endl;
+}
+
+void RTGUI_particles::export_mesh(std::string filename)
+{
+  assert(mesh != nullptr && indicies != nullptr);
+
+  std::ofstream of;
+  of.open(filename + std::to_string(frame) + ".obj");
+  for (int i = 0; i < mesh->size(); i += 3) {
+    of << "v " << (*mesh)[i].x << " " << (*mesh)[i].y << " " << (*mesh)[i].z
+       << std::endl;
+  }
+  assert(indicies->size() % 3 == 0);
+  for (int i = 0; i < indicies->size(); i += 3) {
+    of << "f " << (*indicies)[i] + 1 << " " << (*indicies)[i + 1] + 1 << " "
+       << (*indicies)[i + 2] + 1 << std::endl;
+  }
+  of.close();
 }

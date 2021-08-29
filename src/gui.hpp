@@ -35,7 +35,8 @@ class RTGUI_particles : public GUI {
 
   void set_particles(const hvector<SPHParticle> &_p);
   void set_solver(PBDSolver *_solver);
-  void set_mesh(bool _remesh);
+  // OBJ File will be exported as {filename}_{frame}.obj
+  void export_mesh(std::string filename);
   void main_loop(const std::function<void()> &callback) override;
   void del();
 
@@ -43,6 +44,7 @@ class RTGUI_particles : public GUI {
   hvector<SPHParticle> p{};
   // std::shared_ptr<hvector<SPHParticle>> p{};
 
+  uint frame = 0;
   unsigned int VAO{}, VBO{}, EBO{};
   std::unique_ptr<Shader> p_shader{}, m_shader{};
   std::shared_ptr<hvector<vec3>> mesh;
@@ -53,6 +55,7 @@ class RTGUI_particles : public GUI {
   float meta_radius = 1.0f;  //  metaball_radius
                              // float isovalue = 0.0;
                              // float grid_size = 0.2f;
+  bool exportMesh = false;
 
  private:
   void render_particles() const;

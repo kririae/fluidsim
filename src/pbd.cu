@@ -3,7 +3,7 @@
 //
 
 #include "cu_common.cuh"
-#include "curand_kernel.h"
+#include "gui.hpp"
 #include "particle.hpp"
 #include "pbd.hpp"
 #include "rand_unit.cuh"
@@ -38,7 +38,7 @@ void PBDSolver::substep()
 {
   // data -> [__CUDA_OPERATIONS__] -> data (at all)
   // For compatibility consideration, cannot use modern CPP
-  static int interval = 60;
+  static int interval = 1;
 
   // for data_size linear parallel
   const int data_size = int(data.size());
@@ -179,14 +179,14 @@ const hvector<SPHParticle> &PBDSolver::get_data()
 __device__ void PBDSolver::constraint_to_border(SPHParticle &p)
 {
   // TODO: the same offset on two dimensions
-  // static unsigned int a = 0;
-  // auto _rd = RD_GLOBAL(-1.0f, 1.0f);
-  // atomicAdd(&a, 1);
-  // p.pos += epsilon * vec3(_rd(a), 0.0f, 0.0f);
-  // atomicAdd(&a, 1);
-  // p.pos += epsilon * vec3(0.0f, _rd(a), 0.0f);
-  // atomicAdd(&a, 1);
-  // p.pos += epsilon * vec3(0.0f, 0.0f, _rd(a));
+  static unsigned int a = 0;
+  auto _rd = RD_GLOBAL(-1.0f, 1.0f);
+  atomicAdd(&a, 1);
+  p.pos += epsilon * vec3(_rd(a), 0.0f, 0.0f);
+  atomicAdd(&a, 1);
+  p.pos += epsilon * vec3(0.0f, _rd(a), 0.0f);
+  atomicAdd(&a, 1);
+  p.pos += epsilon * vec3(0.0f, 0.0f, _rd(a));
   p.pos.x = glm::clamp(p.pos.x, -border, border);
   p.pos.y = glm::clamp(p.pos.y, -border, border);
   p.pos.z = glm::clamp(p.pos.z, -border, border);
@@ -220,7 +220,7 @@ float PBDSolver::compute_s_corr(const SPHParticle &p_i,
 {
   float k = 0.1f;  // k
   float n = 4.0f;
-  float delta_q = 0.3f * h;
+  float delta_q = 0.5f * h;
   float r = glm::length(p_i.pos - p_j.pos);
   return -k * fast_pow(poly6(r, h) / poly6(delta_q, h), n);
 }

@@ -5,22 +5,22 @@
 #ifndef PBF3D_SRC_PBD_HPP_
 #define PBF3D_SRC_PBD_HPP_
 
-#include "gui.hpp"
 #include "solver.hpp"
 #include <memory>
 #include <vector>
 
 class SPHParticle;
+class RTGUI_particles;
 
 class PBDSolver : public Solver {
   // Stateful solver
  public:
-  static constexpr int MAX_NEIGHBOR_SIZE = 80;
+  static constexpr int MAX_NEIGHBOR_SIZE = 120;
   static constexpr int n_substeps = 1;
 
   // modifiable value on IMGUI
-  float rho_0 = 20.0f;
-  int iter = 3;
+  float rho_0 = 10.0f;
+  int iter = 5;
   vec3 ext_f = vec3(0.0f, -9.8f, 0.0f);
 
   explicit PBDSolver(float _radius);
