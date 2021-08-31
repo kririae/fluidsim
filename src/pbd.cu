@@ -58,6 +58,7 @@ void PBDSolver::substep()
   apply_force<<<num_blocks, threads_per_block>>>(
       RAW_PTR(dev_data), data_size, ext_f, delta_t);
 
+  cudaDeviceSynchronize();
   // find all neighbors
   auto dt_start = std::chrono::system_clock::now();
 
@@ -98,6 +99,7 @@ void PBDSolver::substep()
         pitch_neighbor,
         pitch_hash);
 
+    cudaDeviceSynchronize();
     CUDA_CALL(cudaFree(dev_hash_map));
   }
 
@@ -129,6 +131,8 @@ void PBDSolver::substep()
   // update all velocity
   update_velocity<<<num_blocks, threads_per_block>>>(
       RAW_PTR(dev_data), RAW_PTR(pre_data), data_size, delta_t);
+
+  cudaDeviceSynchronize();
 
   // Copy device vector back to host
   CUDA_CALL(cudaMemcpy(&data[0],

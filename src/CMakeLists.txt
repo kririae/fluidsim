@@ -13,9 +13,9 @@ endif ()
 
 # External Library
 list(APPEND CMAKE_MODULE_PATH /usr/lib/cmake/OpenVDB)
+find_package(OpenVDB REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(imgui REQUIRED)
-find_package(OpenVDB REQUIRED)
 
 include_directories("${PROJECT_SOURCE_DIR}/libs/include")
 
@@ -30,7 +30,8 @@ target_compile_options(fluidsim PUBLIC -O3)
 set_target_properties(fluidsim PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 target_compile_definitions(fluidsim PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLAD)
-target_link_libraries(fluidsim PUBLIC imgui::imgui glfw ${CMAKE_DL_LIBS} OpenVDB::openvdb tbb)
+target_link_libraries(fluidsim PUBLIC imgui::imgui glfw ${CMAKE_DL_LIBS})
+target_link_libraries(fluidsim PUBLIC OpenVDB::openvdb)
 
 add_executable(pbf3d "${PROJECT_SOURCE_DIR}/src/main.cu")
 target_compile_options(pbf3d PUBLIC -O3)

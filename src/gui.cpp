@@ -10,9 +10,11 @@
 #include "mesher.hpp"
 #include "particle.hpp"
 #include "pbd.hpp"
+#include "solver.hpp"
 #include <chrono>
 #include <iostream>
 #include <memory>
+#include <sstream>
 
 GUI::GUI(int WIDTH, int HEIGHT) : width(WIDTH), height(HEIGHT)
 {
@@ -196,7 +198,6 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
       ImGui::SliderFloat("ext_f.x", &(solver->ext_f.x), -10.0f, 10.0f);
       ImGui::SliderFloat("ext_f.y", &(solver->ext_f.y), -10.0f, 10.0f);
       ImGui::SliderFloat("ext_f.z", &(solver->ext_f.z), -10.0f, 10.0f);
-      ImGui::SliderFloat("meta_radius", &meta_radius, 0.5f, 5.0f);
       ImGui::Checkbox("rotate", &rotate);
       ImGui::Checkbox("remesh", &remesh);
       exportMesh |= ImGui::Button("Export Current");
@@ -257,7 +258,7 @@ void RTGUI_particles::render_particles() const
     p_shader->set_mat4("model", model);
     p_shader->set_mat4("view", view);
     p_shader->set_mat4("projection", projection);
-    glPointSize(1.8f);
+    glPointSize(1.6f);
     glDrawArrays(GL_POINTS, 0, p.size());
   }
 

@@ -12,6 +12,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 #include <random>
 
 // TO BE RECONSTRUCT into `class`
@@ -29,6 +30,11 @@ template<typename T> using hvector = std::vector<T>;
 using namespace std::literals::string_literals;
 
 #define CUDA_FUNC_DEC __attribute__((host)) __attribute__((device))
+#define TODO() \
+  do { \
+    std::cerr << __FILE__ << " " << __LINE__ << " " << __func__ \
+              << " is not implemented" << std::endl; \
+  } while (0)
 
 // Function definition
 [[maybe_unused]] CUDA_FUNC_DEC float fast_pow(float a, int b);

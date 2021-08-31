@@ -16,7 +16,6 @@ class PBDSolver : public Solver {
   // Stateful solver
  public:
   static constexpr int MAX_NEIGHBOR_SIZE = 120;
-  static constexpr int n_substeps = 1;
 
   // modifiable value on IMGUI
   float rho_0 = 10.0f;
@@ -29,9 +28,9 @@ class PBDSolver : public Solver {
   ~PBDSolver() override = default;
 
   // void set_gui(RTGUI_particles *gui) noexcept;
-  void update_gui(RTGUI_particles *gui_ptr) noexcept;
+  void update_gui(RTGUI_particles *gui_ptr) noexcept override;
   void substep() override;
-  void add_particle(const SPHParticle &p);
+  void add_particle(const SPHParticle &p) override;
   const hvector<SPHParticle> &get_data();
 
   // PBF mathematics parts...

@@ -3,8 +3,19 @@
 //
 
 #include "solver.hpp"
+#include "common.hpp"
 
 void Solver::substep()
 {
-  // do nothing
+  TODO();
+}
+
+void Solver::update_gui(RTGUI_particles *gui_ptr) noexcept
+{
+  TODO();
+}
+
+void Solver::add_particle(const SPHParticle &p)
+{
+  TODO();
 }

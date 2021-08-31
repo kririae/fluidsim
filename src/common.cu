@@ -4,8 +4,6 @@
 
 #include "common.hpp"
 #include "cu_common.cuh"
-#include <cstdlib>
-#include <curand.h>
 
 [[maybe_unused]] CUDA_FUNC_DEC float fast_pow(float a, int b)
 {
