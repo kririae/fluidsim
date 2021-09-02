@@ -10,6 +10,7 @@ My implementation of Position-Based Fluid[1] (or more?)  and infrastructures[2] 
 - ImGui (1.84.1 or above, hard requirement)
 - CUDA (11.4.1 or above)
 - OpenVDB (8.1.0 or above)
+- g++ only (I don't know why yet)
 
 ## Usage
 

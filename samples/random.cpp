@@ -9,7 +9,7 @@
 #include <random>
 
 constexpr int NParticles = 6000;
-constexpr int WIDTH = 800, HEIGHT = 600;
+constexpr int WIDTH = 1280, HEIGHT = 720;
 
 int main()
 {

@@ -5,12 +5,12 @@
 #ifndef PBF3D_SRC_GUI_HPP_
 #define PBF3D_SRC_GUI_HPP_
 
+#include "particle.hpp"
 #include "shader.hpp"
 #include <functional>
 #include <memory>
 
 class GLFWwindow;
-class SPHParticle;
 class Solver;
 class PBDSolver;
 

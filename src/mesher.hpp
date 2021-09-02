@@ -5,7 +5,6 @@
 #ifndef PBF3D_SRC_MESHER_HPP_
 #define PBF3D_SRC_MESHER_HPP_
 
-#include "common.hpp"
 #include <openvdb/Types.h>
 
 class SPHParticle;

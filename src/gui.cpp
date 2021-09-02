@@ -193,11 +193,13 @@ void RTGUI_particles::main_loop(const std::function<void()> &callback)
       ImGui::Begin(
           "PBD Controller", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
       ImGui::Text("Framerate: %.1f", io.Framerate);
-      ImGui::SliderFloat("rho_0", &(solver->rho_0), 5.0f, 40.0f);
-      ImGui::SliderInt("iter", &(solver->iter), 1, 10);
-      ImGui::SliderFloat("ext_f.x", &(solver->ext_f.x), -10.0f, 10.0f);
-      ImGui::SliderFloat("ext_f.y", &(solver->ext_f.y), -10.0f, 10.0f);
-      ImGui::SliderFloat("ext_f.z", &(solver->ext_f.z), -10.0f, 10.0f);
+      if (solver) {
+        ImGui::SliderFloat("rho_0", &(solver->rho_0), 5.0f, 40.0f);
+        ImGui::SliderInt("iter", &(solver->iter), 1, 10);
+        ImGui::SliderFloat("ext_f.x", &(solver->ext_f.x), -10.0f, 10.0f);
+        ImGui::SliderFloat("ext_f.y", &(solver->ext_f.y), -10.0f, 10.0f);
+        ImGui::SliderFloat("ext_f.z", &(solver->ext_f.z), -10.0f, 10.0f);
+      }
       ImGui::Checkbox("rotate", &rotate);
       ImGui::Checkbox("remesh", &remesh);
       exportMesh |= ImGui::Button("Export Current");
@@ -383,12 +385,12 @@ void RTGUI_particles::export_mesh(std::string filename)
 
   std::ofstream of;
   of.open(filename + std::to_string(frame) + ".obj");
-  for (int i = 0; i < mesh->size(); i += 3) {
+  for (uint i = 0; i < mesh->size(); i += 3) {
     of << "v " << (*mesh)[i].x << " " << (*mesh)[i].y << " " << (*mesh)[i].z
        << std::endl;
   }
   assert(indicies->size() % 3 == 0);
-  for (int i = 0; i < indicies->size(); i += 3) {
+  for (uint i = 0; i < indicies->size(); i += 3) {
     of << "f " << (*indicies)[i] + 1 << " " << (*indicies)[i + 1] + 1 << " "
        << (*indicies)[i + 2] + 1 << std::endl;
   }

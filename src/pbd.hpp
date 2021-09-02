@@ -63,51 +63,50 @@ class PBDSolver : public Solver {
   hvector<SPHParticle> data;
 };
 
-static __attribute__((global)) void update_velocity(SPHParticle *dev_data,
-                                                    SPHParticle *pre_data,
-                                                    int data_size,
-                                                    float delta_t);
+__attribute__((global)) void update_velocity(SPHParticle *dev_data,
+                                             SPHParticle *pre_data,
+                                             int data_size,
+                                             float delta_t);
 
-static __attribute__((global)) void apply_force(SPHParticle *dev_data,
-                                                int data_size,
-                                                vec3 ext_f,
-                                                float delta_t);
+__attribute__((global)) void apply_force(SPHParticle *dev_data,
+                                         int data_size,
+                                         vec3 ext_f,
+                                         float delta_t);
 
-static __attribute__((global)) void fill_lambda(SPHParticle *dev_data,
-                                                size_t data_size,
-                                                int *dev_neighbor_map,
-                                                const int *dev_n_neighbor_map,
-                                                size_t pitch_neighbor,
-                                                float *c_i,
-                                                float *lambda,
-                                                float rho_0,
-                                                float mass);
-static __attribute__((global)) void apply_motion(SPHParticle *dev_data,
-                                                 size_t data_size,
-                                                 const int *dev_n_neighbor_map,
-                                                 const int *dev_neighbor_map,
-                                                 const float *lambda,
-                                                 const float *c_i,
-                                                 size_t pitch,
-                                                 float rho_0);
+__attribute__((global)) void fill_lambda(SPHParticle *dev_data,
+                                         size_t data_size,
+                                         int *dev_neighbor_map,
+                                         const int *dev_n_neighbor_map,
+                                         size_t pitch_neighbor,
+                                         float *c_i,
+                                         float *lambda,
+                                         float rho_0,
+                                         float mass);
+__attribute__((global)) void apply_motion(SPHParticle *dev_data,
+                                          size_t data_size,
+                                          const int *dev_n_neighbor_map,
+                                          const int *dev_neighbor_map,
+                                          const float *lambda,
+                                          const float *c_i,
+                                          size_t pitch,
+                                          float rho_0);
 
 // Allow access to hash function
-static __attribute__((global)) void build_hash_map(SPHParticle *dev_data,
-                                                   int data_size,
-                                                   int *dev_hash_map,
-                                                   int *dev_n_hash_map,
-                                                   int n_grids,
-                                                   size_t pitch_hash,
-                                                   int *hash_map_mutex);
+__attribute__((global)) void build_hash_map(SPHParticle *dev_data,
+                                            int data_size,
+                                            int *dev_hash_map,
+                                            int *dev_n_hash_map,
+                                            int n_grids,
+                                            size_t pitch_hash,
+                                            int *hash_map_mutex);
 
-static __attribute__((global)) void build_neighbor_map(
-    SPHParticle *dev_data,
-    int data_size,
-    int *dev_neighbor_map,
-    int *dev_n_neighbor_map,
-    const int *dev_hash_map,
-    const int *dev_n_hash_map,
-    int n_grids,
-    size_t pitch_neighbor,
-    size_t pitch_hash);
+__attribute__((global)) void build_neighbor_map(SPHParticle *dev_data,
+                                                int data_size,
+                                                int *dev_neighbor_map,
+                                                int *dev_n_neighbor_map,
+                                                const int *dev_hash_map,
+                                                const int *dev_n_hash_map,
+                                                int n_grids,
+                                                size_t pitch_neighbor,
+                                                size_t pitch_hash);
 #endif  // PBF3D_SRC_PBD_HPP_
