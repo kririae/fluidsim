@@ -12,12 +12,13 @@
 
 #define RAW_PTR(o) (thrust::raw_pointer_cast((o).data()))
 
-constexpr float denom_epsilon = 20.0f;
+constexpr float denom_epsilon = 100.0f;
 
 PBDSolver::PBDSolver(float _radius)
     : radius(_radius), radius2(_radius * _radius)
 {
-  mass = 4.0f / 3.0f * glm::pi<float>() * radius2;
+  // mass = 4.0f / 3.0f * glm::pi<float>() * radius2;
+  mass = 1.0f;
   n_grids = int(glm::ceil(2 * border / radius) + 1);
 }
 

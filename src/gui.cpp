@@ -244,7 +244,7 @@ void RTGUI_particles::render_particles() const
     assert(mesh != nullptr);
     assert(indicies != nullptr);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     m_shader->use();
     m_shader->set_mat4("model", model);
     m_shader->set_mat4("view", view);
@@ -337,40 +337,83 @@ void RTGUI_particles::construct_mesh()
   std::vector<openvdb::Vec3s> points;
   std::vector<openvdb::Vec3I> triangles;
   std::vector<openvdb::Vec4I> quads;
+  std::vector<std::pair<vec3, uint>> normals;
   particleToMesh(p, points, triangles, quads);
   std::cout << "n points: " << points.size() << std::endl;
   std::cout << "n triangles: " << triangles.size() << std::endl;
   std::cout << "n quads: " << quads.size() << std::endl;
   indicies = std::make_shared<hvector<uint>>();
   mesh = std::make_shared<hvector<vec3>>();
+  normals.resize(points.size());  // allocate for vector
 
-  for (auto &i : triangles) {
+  static auto conv_to_vec3 = [&](openvdb::Vec3s item) -> vec3 {
+    return {item.x(), item.y(), item.z()};
+  };
+
+  static auto set_normal = [&](uint x, uint y, uint z) {
+    vec3 x2y = conv_to_vec3(points[y] - points[x]);
+    vec3 x2z = conv_to_vec3(points[z] - points[x]);
+    vec3 normal = glm::cross(x2y, x2z);
+    std::vector<uint> idx{x, y, z};
+    for (uint j : idx) {
+      normals[j].first += normal;
+      normals[j].second++;
+    }
+  };
+
+  std::for_each(triangles.begin(), triangles.end(), [&](const auto &i) {
     indicies->push_back(i.x());
     indicies->push_back(i.y());
     indicies->push_back(i.z());
-  }
+    set_normal(i.x(), i.y(), i.z());
+  });
 
-  // TODO: calculate the convex hull
-  for (auto &i : quads) {
-    indicies->push_back(i.x());
-    indicies->push_back(i.y());
-    indicies->push_back(i.z());
+  std::for_each(quads.begin(), quads.end(), [&](const auto &i) {
+    // Select the first three points
+    uint _a, _b, _c, _o;
+    const uint *points_index = i.asPointer();
+    for (uint a = 1; a <= 3; ++a) {
+      for (uint b = a + 1; b <= 3; ++b) {
+        // select the none-select point
+        if (a == b)
+          continue;
+        const uint c = 6 - a - b;
+        _a = points_index[a], _b = points_index[b], _c = points_index[c],
+        _o = points_index[0];
+        const vec3 o2c = conv_to_vec3(points[_c] - points[_o]),
+                   o2a = conv_to_vec3(points[_a] - points[_o]),
+                   o2b = conv_to_vec3(points[_b] - points[_o]);
+        const vec3 cro_a = glm::cross(o2c, o2a), cro_b = glm::cross(o2c, o2b);
+        if (glm::dot(cro_a, cro_b) < 0)
+          goto _set;
+      }
+    }
 
-    indicies->push_back(i.x());
-    indicies->push_back(i.z());
-    indicies->push_back(i.w());
-  }
+    assert(false);
+  _set:  // a, b, c, o is set
+    indicies->push_back(_o);
+    indicies->push_back(_a);
+    indicies->push_back(_b);
+    set_normal(_o, _a, _b);
 
-  for (auto &i : points) {
-    mesh->emplace_back(i.x(), i.y(), i.z());
-    mesh->emplace_back(0, 1, 0);
+    indicies->push_back(_c);
+    indicies->push_back(_a);
+    indicies->push_back(_b);
+    set_normal(_c, _a, _b);
+  });
+
+  for (uint i = 0; i < points.size(); ++i) {
+    const auto &point = points[i];
+    mesh->emplace_back(point.x(), point.y(), point.z());
+    vec3 normal = normals[i].first / static_cast<float>(normals[i].second);
+    normal = glm::normalize(normal);
+    mesh->emplace_back(normal.x, normal.y, normal.z);
     mesh->emplace_back(0, 0, 0);
   }
 
-  if (exportMesh) {
+  if (exportMesh)
     export_mesh("pbf_sim_");
-    // exportMesh = false;
-  }
+  // exportMesh = false;
 
   auto ms_end = std::chrono::system_clock::now();
   std::chrono::duration<float> ms_diff = ms_end - ms_start;
@@ -383,6 +426,7 @@ void RTGUI_particles::export_mesh(std::string filename)
 {
   assert(mesh != nullptr && indicies != nullptr);
 
+  // TODO: to be optimized
   std::ofstream of;
   of.open(filename + std::to_string(frame) + ".obj");
   for (uint i = 0; i < mesh->size(); i += 3) {

@@ -55,8 +55,8 @@ void particleToMesh(const std::vector<SPHParticle> &data,
   raster.finalize(true);
 
   openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*grid);
-  // filter.gaussian();
+  filter.gaussian();
   // filter.meanCurvature();
 
-  openvdb::tools::volumeToMesh(*grid, points, triangles, quads, 0.0, 0.2);
+  openvdb::tools::volumeToMesh(*grid, points, triangles, quads, 0.0, 0.5);
 }

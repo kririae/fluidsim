@@ -29,7 +29,7 @@ To test(after building):
 ## TODO
 
 - [ ] other mathematical part of PBF (for accuracy)
-- [ ] normal reconstruction
+- [x] normal reconstruction
 - [ ] work as a blender plugin (for convenience)
 - [ ] simple raytracing render, for caustics
 

@@ -15,10 +15,10 @@ class RTGUI_particles;
 class PBDSolver : public Solver {
   // Stateful solver
  public:
-  static constexpr int MAX_NEIGHBOR_SIZE = 120;
+  static constexpr int MAX_NEIGHBOR_SIZE = 100;
 
   // modifiable value on IMGUI
-  float rho_0 = 10.0f;
+  float rho_0 = 8.0f;
   int iter = 5;
   vec3 ext_f = vec3(0.0f, -9.8f, 0.0f);
 
