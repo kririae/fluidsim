@@ -44,7 +44,7 @@ void PBDSolver::substep()
   // for data_size linear parallel
   const int data_size = int(data.size());
 
-  constexpr int threads_per_block = 1024;
+  constexpr int threads_per_block = 256;
   const int num_blocks = (data_size + threads_per_block - 1) /
                          threads_per_block;
 
@@ -236,7 +236,7 @@ __global__ void update_velocity(SPHParticle *dev_data,
                                 float delta_t)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
-  for (; i < data_size; i += i += blockDim.x * gridDim.x) {
+  for (; i < data_size; i += blockDim.x * gridDim.x) {
     auto &p = dev_data[i];
     PBDSolver::constraint_to_border(p);
     p.v = 1.0f / delta_t * (p.pos - pre_data[i].pos);
@@ -249,7 +249,7 @@ __global__ void apply_force(SPHParticle *dev_data,
                             float delta_t)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
-  for (; i < data_size; i += i += blockDim.x * gridDim.x) {
+  for (; i < data_size; i += blockDim.x * gridDim.x) {
     dev_data[i].v += delta_t * ext_f;
     dev_data[i].pos += delta_t * dev_data[i].v;
     PBDSolver::constraint_to_border(dev_data[i]);
@@ -267,7 +267,7 @@ __global__ void fill_lambda(SPHParticle *dev_data,
                             float mass)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
-  for (; i < data_size; i += i += blockDim.x * gridDim.x) {
+  for (; i < data_size; i += blockDim.x * gridDim.x) {
     // --- calculate rho ---
     float rho = 0;
     int *dev_neighbor_vec = (int *)((char *)dev_neighbor_map +
@@ -314,7 +314,7 @@ __global__ void apply_motion(SPHParticle *dev_data,
                              float rho_0)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
-  for (; i < data_size; i += i += blockDim.x * gridDim.x) {
+  for (; i < data_size; i += blockDim.x * gridDim.x) {
     vec3 delta_p_i(0.0f);
     int *dev_neighbor_vec = (int *)((char *)dev_neighbor_map + i * pitch);
     for (int index = 0; index < dev_n_neighbor_map[i]; ++index) {
@@ -341,7 +341,7 @@ __global__ void build_hash_map(SPHParticle *dev_data,
                                int *hash_map_mutex)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
-  for (; i < data_size; i += i += blockDim.x * gridDim.x) {
+  for (; i < data_size; i += blockDim.x * gridDim.x) {
     int hash_map_index = PBDSolver::hash(dev_data[i].pos, n_grids);
     int *dev_hash_map_item = (int *)((char *)dev_hash_map +
                                      pitch_hash * hash_map_index);
@@ -367,7 +367,7 @@ __global__ void build_neighbor_map(SPHParticle *dev_data,
                                    size_t pitch_hash)
 {
   unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
-  for (; i < data_size; i += i += blockDim.x * gridDim.x) {
+  for (; i < data_size; i += blockDim.x * gridDim.x) {
     const auto &center = dev_data[i];
     const auto grid_index = PBDSolver::get_grid_index(center.pos);
     int *dev_neighbor_map_item = (int *)((char *)dev_neighbor_map +

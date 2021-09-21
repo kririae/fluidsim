@@ -16,7 +16,7 @@
 #include <random>
 
 // TO BE RECONSTRUCT into `class`
-constexpr float border = 20.0f;
+constexpr float border = 40.0f;
 constexpr float epsilon = 1e-5;
 constexpr float radius = 2.0f;
 constexpr float radius2 = radius * radius;

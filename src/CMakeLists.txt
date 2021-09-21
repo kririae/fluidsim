@@ -1,5 +1,5 @@
 set(CMAKE_CUDA_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CUDA_FLAGS}")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -w -g --expt-relaxed-constexpr --expt-extended-lambda  -ccbin=${CMAKE_CXX_COMPILER}")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -w -g --expt-relaxed-constexpr --expt-extended-lambda  -ccbin=${CMAKE_CXX_COMPILER} -arch=sm_61")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-attributes -g -Wpedantic -Wextra -Wshadow -Wpointer-arith -Wformat=2 -Wall")
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
