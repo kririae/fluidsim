@@ -1,6 +1,6 @@
-# TODO: make options work
 option(WITH_PYTHON_EXTENSION "Enable python interface compilation" ON)
 option(WITH_CUDA_PBD "Enable PBD CUDA optimization" ON)
+option(WITH_OPENVDB "Enable OpenVDB powered remesher" OFF)
 
 cmake_minimum_required(VERSION 3.21)
 project(fluidsim LANGUAGES CXX C CUDA)

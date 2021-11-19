@@ -1,5 +1,5 @@
 set(CMAKE_CUDA_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CUDA_FLAGS}")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -w -g --expt-relaxed-constexpr --expt-extended-lambda  -ccbin=${CMAKE_CXX_COMPILER} -arch=sm_61")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -w -g --expt-relaxed-constexpr --expt-extended-lambda  -ccbin=${CMAKE_CXX_COMPILER}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-attributes -g -Wpedantic -Wextra -Wshadow -Wpointer-arith -Wformat=2 -Wall")
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -10,8 +10,11 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES GNU)
 endif ()
 
 # External Library
-list(APPEND CMAKE_MODULE_PATH /usr/lib/cmake/OpenVDB)
-find_package(OpenVDB REQUIRED)
+if (WITH_OPENVDB)
+  list(APPEND CMAKE_MODULE_PATH /usr/lib/cmake/OpenVDB)
+  find_package(OpenVDB REQUIRED)
+endif ()
+
 find_package(glfw3 REQUIRED)
 find_package(imgui REQUIRED)
 
@@ -23,19 +26,27 @@ file(GLOB LIBSOURCE
   "${PROJECT_SOURCE_DIR}/libs/src/*.c*")
 list(REMOVE_ITEM SOURCE "${PROJECT_SOURCE_DIR}/src/main.cu")
 
+if (NOT WITH_OPENVDB)
+  list(REMOVE_ITEM SOURCE "${PROJECT_SOURCE_DIR}/src/mesher.cpp")
+endif ()
+
 add_library(fluidsim ${SOURCE} ${LIBSOURCE})
 target_compile_options(fluidsim PUBLIC -O3)
 set_target_properties(fluidsim PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 target_compile_definitions(fluidsim PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLAD)
 target_link_libraries(fluidsim PUBLIC imgui::imgui glfw ${CMAKE_DL_LIBS})
-target_link_libraries(fluidsim PUBLIC OpenVDB::openvdb)
+if (WITH_OPENVDB)
+  target_link_libraries(fluidsim PUBLIC OpenVDB::openvdb)
+  target_compile_definitions(fluidsim PUBLIC WITH_OPENVDB)
+endif ()
 
 if (WITH_PYTHON_EXTENSION)
   include_directories(${PYTHON_INCLUDE_DIRS})
   pybind11_add_module(pyfluidsim blender/pyinter.cpp)
   target_link_libraries(pyfluidsim PUBLIC fluidsim)
 endif ()
+
 
 add_executable(pbf3d "${PROJECT_SOURCE_DIR}/src/main.cu")
 target_compile_options(pbf3d PUBLIC -O3)

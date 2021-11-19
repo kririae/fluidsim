@@ -105,7 +105,7 @@ void RTGUI_particles::set_particles(const hvector<SPHParticle> &_p)
   glBindVertexArray(VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-  if (remesh) {
+  if (remesh && !sphere) {
     // if (mesh == nullptr)
     construct_mesh();
 
@@ -130,6 +130,9 @@ void RTGUI_particles::set_particles(const hvector<SPHParticle> &_p)
                  indicies->size() * sizeof(uint),
                  indicies->data(),
                  GL_STREAM_DRAW);
+  } else if (sphere) {
+    // Load sphere
+
   } else {
     hvector<float> points;
     points.reserve(p.size() * 4);
@@ -245,6 +248,7 @@ void RTGUI_particles::render_particles() const
     assert(indicies != nullptr);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     m_shader->use();
     m_shader->set_mat4("model", model);
     m_shader->set_mat4("view", view);
@@ -253,7 +257,9 @@ void RTGUI_particles::render_particles() const
     m_shader->set_vec3("light_color", glm::vec3(1.0f));
     m_shader->set_vec3("light_pos", camera_pos);
     m_shader->set_vec3("view_pos", camera_pos);
+
     // glDrawArrays(GL_TRIANGLES, 0, mesh->size() / 3);
+
     glDrawElements(GL_TRIANGLES, indicies->size(), GL_UNSIGNED_INT, (void *)0);
   } else {
     p_shader->use();
@@ -338,7 +344,9 @@ void RTGUI_particles::construct_mesh()
   std::vector<openvdb::Vec3I> triangles;
   std::vector<openvdb::Vec4I> quads;
   std::vector<std::pair<vec3, uint>> normals;
+#ifdef WITH_OPENVDB
   particleToMesh(p, points, triangles, quads);
+#endif
   std::cout << "n points: " << points.size() << std::endl;
   std::cout << "n triangles: " << triangles.size() << std::endl;
   std::cout << "n quads: " << quads.size() << std::endl;

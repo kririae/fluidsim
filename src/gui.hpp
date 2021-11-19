@@ -52,6 +52,7 @@ class RTGUI_particles : public GUI {
   PBDSolver *solver{};
   bool rotate = false;
   bool remesh = false;
+  bool sphere = true;
   // float meta_radius = 1.0f;  //  metaball_radius
   bool exportMesh = false;
 
