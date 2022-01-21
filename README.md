@@ -1,6 +1,6 @@
 # fluidsim
 
-> In progress with my lazy development
+> Note: Development of this repo has stopped, and the refactored version has been migrated to `FluidVisualization`.
 
 My implementation of Position-Based Fluid[1] (or more?)  and infrastructures[2] for further use.
 
