@@ -280,7 +280,7 @@ __global__ void fill_lambda(
                         glm::length(dev_data[i].pos - dev_data[j].pos), radius);
     }
 
-    c_i[i] = glm::max(rho / rho_0 - 1, 0.0f);
+    c_i[i] = rho / rho_0 - 1;
 
     // --- calculate grad_c ---
     float _denom = 0.0f;
